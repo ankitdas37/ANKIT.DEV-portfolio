@@ -24,14 +24,14 @@ router.get('/', async (req, res) => {
 // @route   POST /api/gallery
 router.post('/', async (req, res) => {
   try {
-    const { title, color, hidden, images } = req.body;
+    const { title, color, hidden, images, coverImage } = req.body;
     const hiddenVal = hidden ? 1 : 0;
     const imagesJson = JSON.stringify(images || []);
     
     const [result] = await db.query(
-      `INSERT INTO gallery_folders (title, color, hidden, images)
-       VALUES (?, ?, ?, ?)`,
-      [title, color, hiddenVal, imagesJson]
+      `INSERT INTO gallery_folders (title, color, hidden, images, coverImage)
+       VALUES (?, ?, ?, ?, ?)`,
+      [title, color, hiddenVal, imagesJson, coverImage || '']
     );
     const [rows] = await db.query('SELECT * FROM gallery_folders WHERE id = ?', [result.insertId]);
     res.status(201).json(parseRow(rows[0]));
@@ -45,13 +45,13 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, color, hidden, images } = req.body;
+    const { title, color, hidden, images, coverImage } = req.body;
     const hiddenVal = hidden ? 1 : 0;
     const imagesJson = JSON.stringify(images || []);
 
     await db.query(
-      `UPDATE gallery_folders SET title=?, color=?, hidden=?, images=? WHERE id=?`,
-      [title, color, hiddenVal, imagesJson, id]
+      `UPDATE gallery_folders SET title=?, color=?, hidden=?, images=?, coverImage=? WHERE id=?`,
+      [title, color, hiddenVal, imagesJson, coverImage || '', id]
     );
     const [rows] = await db.query('SELECT * FROM gallery_folders WHERE id = ?', [id]);
     res.json(parseRow(rows[0]));

@@ -172,6 +172,7 @@ CREATE TABLE IF NOT EXISTS gallery_folders (
     title VARCHAR(255) NOT NULL,
     color VARCHAR(50),
     hidden TINYINT(1) DEFAULT 0,
+    coverImage VARCHAR(500),
     images JSON,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
