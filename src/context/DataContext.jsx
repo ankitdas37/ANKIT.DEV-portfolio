@@ -48,7 +48,7 @@ export function DataProvider({ children }) {
   // Fetch projects from MySQL backend
   useEffect(() => {
     console.log("Fetching projects from API...");
-    fetch(`${import.meta.env.VITE_API_URL || '${import.meta.env.VITE_API_URL || 'http://localhost:5000'}'}/api/projects`)
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/projects`)
       .then(res => {
         console.log("API Response Status:", res.status);
         return res.json();
@@ -63,7 +63,7 @@ export function DataProvider({ children }) {
 
   // Fetch categories from MySQL backend
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL || '${import.meta.env.VITE_API_URL || 'http://localhost:5000'}'}/api/categories`)
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/categories`)
       .then(res => res.json())
       .then(data => { if (Array.isArray(data)) setCategories(data); })
       .catch(err => console.error('Error fetching categories:', err));
@@ -74,7 +74,7 @@ export function DataProvider({ children }) {
     const fetchData = async () => {
       // Fetch info items
       try {
-        const resInfo = await fetch(`${import.meta.env.VITE_API_URL || '${import.meta.env.VITE_API_URL || 'http://localhost:5000'}'}/api/info`);
+        const resInfo = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/info`);
         if (resInfo.ok) {
           const dataInfo = await resInfo.json();
           setInfoItems(dataInfo);
@@ -83,7 +83,7 @@ export function DataProvider({ children }) {
 
       // Fetch contact links
       try {
-        const resContact = await fetch(`${import.meta.env.VITE_API_URL || '${import.meta.env.VITE_API_URL || 'http://localhost:5000'}'}/api/contact-links`);
+        const resContact = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/contact-links`);
         if (resContact.ok) {
           const dataContact = await resContact.json();
           setContactLinks(dataContact);
@@ -95,7 +95,7 @@ export function DataProvider({ children }) {
 
   // Fetch Skills
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL || '${import.meta.env.VITE_API_URL || 'http://localhost:5000'}'}/api/skills`)
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/skills`)
       .then(res => res.json())
       .then(data => {
         setSkills(data);
@@ -109,7 +109,7 @@ export function DataProvider({ children }) {
 
   // Fetch about me from MySQL backend
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL || '${import.meta.env.VITE_API_URL || 'http://localhost:5000'}'}/api/about`)
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/about`)
       .then(res => res.json())
       .then(data => { setAboutMe(data); })
       .catch(err => console.error('Error fetching about me:', err));
@@ -117,7 +117,7 @@ export function DataProvider({ children }) {
 
   // Fetch education from MySQL backend
   useEffect(() => {
-    fetch(`${import.meta.env.VITE_API_URL || '${import.meta.env.VITE_API_URL || 'http://localhost:5000'}'}/api/education`)
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/education`)
       .then(res => res.json())
       .then(data => { setEducation(data); })
       .catch(err => console.error('Error fetching education:', err));
@@ -133,7 +133,7 @@ export function DataProvider({ children }) {
   // Add a new category
   const addCategory = async (name) => {
     try {
-      const res = await authFetch(`${import.meta.env.VITE_API_URL || '${import.meta.env.VITE_API_URL || 'http://localhost:5000'}'}/api/categories`, {
+      const res = await authFetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/categories`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name })
@@ -181,7 +181,7 @@ export function DataProvider({ children }) {
   const add = async (list, setList, item, type) => {
     if (type === 'projects') {
       try {
-        const res = await authFetch(`${import.meta.env.VITE_API_URL || '${import.meta.env.VITE_API_URL || 'http://localhost:5000'}'}/api/projects`, {
+        const res = await authFetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/projects`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(item)

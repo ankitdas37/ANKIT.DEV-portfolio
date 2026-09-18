@@ -619,7 +619,7 @@ function ProjectsTab({ showToast }) {
     setProjects(updatedItems);
 
     try {
-      const res = await apiFetch(`${import.meta.env.VITE_API_URL || '${import.meta.env.VITE_API_URL || 'http://localhost:5000'}'}/api/projects/reorder`, {
+      const res = await apiFetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/projects/reorder`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ order: updatedItems.map(i => ({ id: i.id, project_order: i.project_order })) })
@@ -2447,7 +2447,7 @@ function LoginScreen({ onLogin }) {
     if (!pw) { setError("Password required"); triggerShake(); return; }
     setLoading(true); setError(false); setMsg("");
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || '${import.meta.env.VITE_API_URL || 'http://localhost:5000'}'}/api/auth/login`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password: pw })
@@ -2474,7 +2474,7 @@ function LoginScreen({ onLogin }) {
     if (resendCooldown > 0) return;
     setLoading(true); setError(false); setMsg("");
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || '${import.meta.env.VITE_API_URL || 'http://localhost:5000'}'}/api/auth/otp/request`, { method: 'POST' });
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/otp/request`, { method: 'POST' });
       if (res.ok) {
         setMsg("New OTP sent! Check your inbox.");
         setResendCooldown(30);
@@ -2497,7 +2497,7 @@ function LoginScreen({ onLogin }) {
   const requestOtp = async (isReset = false) => {
     setLoading(true); setError(false); setMsg("");
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || '${import.meta.env.VITE_API_URL || 'http://localhost:5000'}'}/api/auth/otp/request`, { method: 'POST' });
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/otp/request`, { method: 'POST' });
       if (res.ok) {
         setMsg("OTP sent to admin email. Please check your inbox.");
         setMode(isReset ? "forgot" : "otp");
@@ -2515,7 +2515,7 @@ function LoginScreen({ onLogin }) {
     if (!otpCode) { setError("OTP required"); triggerShake(); return; }
     setLoading(true); setError(false); setMsg("");
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || '${import.meta.env.VITE_API_URL || 'http://localhost:5000'}'}/api/auth/otp/verify`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/otp/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ otp: otpCode })
@@ -2537,7 +2537,7 @@ function LoginScreen({ onLogin }) {
     if (!otpCode || !newPw) { setError("OTP and New Password required"); triggerShake(); return; }
     setLoading(true); setError(false); setMsg("");
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || '${import.meta.env.VITE_API_URL || 'http://localhost:5000'}'}/api/auth/password/reset`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/password/reset`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ otp: otpCode, newPassword: newPw })
@@ -2562,7 +2562,7 @@ function LoginScreen({ onLogin }) {
   const handleGoogleSuccess = async (credentialResponse) => {
     setLoading(true); setError(false); setMsg("");
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || '${import.meta.env.VITE_API_URL || 'http://localhost:5000'}'}/api/auth/login/google`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/login/google`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ credential: credentialResponse.credential })
@@ -3047,7 +3047,7 @@ function CVTab({ showToast }) {
 
     setUploading(true);
     setProgress(1);
-    xhr.open("POST", `${import.meta.env.VITE_API_URL || '${import.meta.env.VITE_API_URL || 'http://localhost:5000'}'}/api/cv/upload`);
+    xhr.open("POST", `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/cv/upload`);
     if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
     xhr.send(formData);
   };
@@ -3084,7 +3084,7 @@ function CVTab({ showToast }) {
                 <p className="text-xs text-[#94A3B8] truncate">{cvUrl}</p>
               </div>
               <a
-                href=`${import.meta.env.VITE_API_URL || '${import.meta.env.VITE_API_URL || 'http://localhost:5000'}'}/api/cv/download`
+                href={`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/cv/download`}
                 download="Ankit_Das_CV_Resume.pdf"
                 className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[rgba(37,99,235,0.15)] border border-[rgba(37,99,235,0.3)] text-[#2563EB] text-xs font-semibold hover:bg-[rgba(37,99,235,0.25)] transition-all shrink-0"
               >
@@ -3568,7 +3568,7 @@ function FeaturedTab({ showToast }) {
     }));
 
     try {
-      const res = await apiFetch(`${import.meta.env.VITE_API_URL || '${import.meta.env.VITE_API_URL || 'http://localhost:5000'}'}/api/projects/featured/reorder`, {
+      const res = await apiFetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/projects/featured/reorder`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ order: updatedItems.map(i => ({ id: i.id, featured_order: i.featured_order })) })
@@ -3651,7 +3651,7 @@ function ProposalsTab({ showToast }) {
   const fetchProposals = async () => {
     try {
       setLoading(true);
-      const res = await apiFetch(`${import.meta.env.VITE_API_URL || '${import.meta.env.VITE_API_URL || 'http://localhost:5000'}'}/api/proposals`);
+      const res = await apiFetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/proposals`);
       if (res.ok) {
         const data = await res.json();
         setProposals(data);
@@ -3802,7 +3802,7 @@ function MessagesTab({ showToast }) {
   const fetchMessages = async () => {
     try {
       setLoading(true);
-      const res = await apiFetch(`${import.meta.env.VITE_API_URL || '${import.meta.env.VITE_API_URL || 'http://localhost:5000'}'}/api/messages`);
+      const res = await apiFetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/messages`);
       if (res.ok) {
         const data = await res.json();
         setMessages(data);
