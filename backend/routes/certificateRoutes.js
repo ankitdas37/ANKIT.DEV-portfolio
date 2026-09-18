@@ -6,7 +6,27 @@ const db = require('../config/db');
 router.get('/', async (req, res) => {
   try {
     const [rows] = await db.query('SELECT * FROM certificates ORDER BY created_at DESC');
-    res.json(rows);
+    
+    // Parse the hidden flag and category array
+    const parsedRows = rows.map(row => {
+      let parsedCategory = row.category;
+      if (typeof row.category === 'string') {
+        try {
+          parsedCategory = JSON.parse(row.category);
+        } catch (e) {
+          // If it's not valid JSON, leave it as a string
+          parsedCategory = row.category;
+        }
+      }
+      
+      return {
+        ...row,
+        hidden: row.hidden === 1 || row.hidden === true,
+        category: parsedCategory
+      };
+    });
+    
+    res.json(parsedRows);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server Error' });
