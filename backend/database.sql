@@ -160,6 +160,9 @@ CREATE TABLE IF NOT EXISTS certificates (
     color VARCHAR(50),
     category VARCHAR(100),
     link VARCHAR(500),
+    image VARCHAR(500),
+    hidden TINYINT(1) DEFAULT 0,
+    hours INT DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

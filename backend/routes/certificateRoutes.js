@@ -16,11 +16,15 @@ router.get('/', async (req, res) => {
 // @route   POST /api/certificates
 router.post('/', async (req, res) => {
   try {
-    const { title, organization, date, color, category, link } = req.body;
+    const { title, organization, date, color, category, link, image, hidden, hours } = req.body;
+    
+    // Ensure category is a string if it's passed as an array
+    const catStr = Array.isArray(category) ? JSON.stringify(category) : category;
+
     const [result] = await db.query(
-      `INSERT INTO certificates (title, organization, date, color, category, link)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [title, organization, date, color, category, link]
+      `INSERT INTO certificates (title, organization, date, color, category, link, image, hidden, hours)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [title, organization, date, color, catStr, link, image || '', hidden ? 1 : 0, hours || 0]
     );
     const [rows] = await db.query('SELECT * FROM certificates WHERE id = ?', [result.insertId]);
     res.status(201).json(rows[0]);
@@ -34,10 +38,14 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, organization, date, color, category, link } = req.body;
+    const { title, organization, date, color, category, link, image, hidden, hours } = req.body;
+    
+    // Ensure category is a string if it's passed as an array
+    const catStr = Array.isArray(category) ? JSON.stringify(category) : category;
+
     await db.query(
-      `UPDATE certificates SET title=?, organization=?, date=?, color=?, category=?, link=? WHERE id=?`,
-      [title, organization, date, color, category, link, id]
+      `UPDATE certificates SET title=?, organization=?, date=?, color=?, category=?, link=?, image=?, hidden=?, hours=? WHERE id=?`,
+      [title, organization, date, color, catStr, link, image || '', hidden ? 1 : 0, hours || 0, id]
     );
     const [rows] = await db.query('SELECT * FROM certificates WHERE id = ?', [id]);
     res.json(rows[0]);
