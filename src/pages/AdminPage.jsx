@@ -663,7 +663,10 @@ function ProjectsTab({ showToast }) {
   };
 
   const handleSave = () => {
-    if (!form.title.trim()) return;
+    if (!form.title || !form.title.trim()) {
+      showToast("Project Title is required!", "error");
+      return;
+    }
     const processedTech = typeof form.tech === 'string' ? form.tech.split(",").map((t) => t.trim()).filter(Boolean) : form.tech;
     
     // Clean up empty array items before saving
