@@ -69,7 +69,7 @@ export default function Hero() {
     // Use backend proxy so the file always downloads as "Ankit_Das_CV_Resume.pdf"
     // Works instantly on mobile and PC — no blob tricks, no CORS issues.
     const link = document.createElement("a");
-    link.href = "http://localhost:5000/api/cv/download";
+    link.href = `${import.meta.env.VITE_API_URL || '${import.meta.env.VITE_API_URL || 'http://localhost:5000'}'}/api/cv/download`;
     link.download = "Ankit_Das_CV_Resume.pdf";
     document.body.appendChild(link);
     link.click();

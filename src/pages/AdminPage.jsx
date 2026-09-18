@@ -415,7 +415,7 @@ function SkillsTab({ showToast }) {
 
     try {
       if (editingId) {
-        const res = await apiFetch(`http://localhost:5000/api/skills/${editingId}`, {
+        const res = await apiFetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/skills/${editingId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(finalForm)
@@ -424,7 +424,7 @@ function SkillsTab({ showToast }) {
         setSkills(skills.map(s => s.id === editingId ? saved : s));
         showToast("Skill updated!");
       } else {
-        const res = await apiFetch(`http://localhost:5000/api/skills`, {
+        const res = await apiFetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/skills`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(finalForm)
@@ -446,7 +446,7 @@ function SkillsTab({ showToast }) {
   const handleDelete = async (id) => {
     if (!window.confirm("Delete this skill?")) return;
     try {
-      await apiFetch(`http://localhost:5000/api/skills/${id}`, { method: 'DELETE' });
+      await apiFetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/skills/${id}`, { method: 'DELETE' });
       setSkills(skills.filter(s => s.id !== id));
       showToast("Skill deleted!");
     } catch (err) {
@@ -456,7 +456,7 @@ function SkillsTab({ showToast }) {
   
   const handleToggleHide = async (skill) => {
     try {
-      const res = await apiFetch(`http://localhost:5000/api/skills/${skill.id}`, {
+      const res = await apiFetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/skills/${skill.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...skill, hidden: !skill.hidden })
@@ -619,7 +619,7 @@ function ProjectsTab({ showToast }) {
     setProjects(updatedItems);
 
     try {
-      const res = await apiFetch('http://localhost:5000/api/projects/reorder', {
+      const res = await apiFetch(`${import.meta.env.VITE_API_URL || '${import.meta.env.VITE_API_URL || 'http://localhost:5000'}'}/api/projects/reorder`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ order: updatedItems.map(i => ({ id: i.id, project_order: i.project_order })) })
@@ -2447,7 +2447,7 @@ function LoginScreen({ onLogin }) {
     if (!pw) { setError("Password required"); triggerShake(); return; }
     setLoading(true); setError(false); setMsg("");
     try {
-      const res = await fetch('http://localhost:5000/api/auth/login', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || '${import.meta.env.VITE_API_URL || 'http://localhost:5000'}'}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password: pw })
@@ -2474,7 +2474,7 @@ function LoginScreen({ onLogin }) {
     if (resendCooldown > 0) return;
     setLoading(true); setError(false); setMsg("");
     try {
-      const res = await fetch('http://localhost:5000/api/auth/otp/request', { method: 'POST' });
+      const res = await fetch(`${import.meta.env.VITE_API_URL || '${import.meta.env.VITE_API_URL || 'http://localhost:5000'}'}/api/auth/otp/request`, { method: 'POST' });
       if (res.ok) {
         setMsg("New OTP sent! Check your inbox.");
         setResendCooldown(30);
@@ -2497,7 +2497,7 @@ function LoginScreen({ onLogin }) {
   const requestOtp = async (isReset = false) => {
     setLoading(true); setError(false); setMsg("");
     try {
-      const res = await fetch('http://localhost:5000/api/auth/otp/request', { method: 'POST' });
+      const res = await fetch(`${import.meta.env.VITE_API_URL || '${import.meta.env.VITE_API_URL || 'http://localhost:5000'}'}/api/auth/otp/request`, { method: 'POST' });
       if (res.ok) {
         setMsg("OTP sent to admin email. Please check your inbox.");
         setMode(isReset ? "forgot" : "otp");
@@ -2515,7 +2515,7 @@ function LoginScreen({ onLogin }) {
     if (!otpCode) { setError("OTP required"); triggerShake(); return; }
     setLoading(true); setError(false); setMsg("");
     try {
-      const res = await fetch('http://localhost:5000/api/auth/otp/verify', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || '${import.meta.env.VITE_API_URL || 'http://localhost:5000'}'}/api/auth/otp/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ otp: otpCode })
@@ -2537,7 +2537,7 @@ function LoginScreen({ onLogin }) {
     if (!otpCode || !newPw) { setError("OTP and New Password required"); triggerShake(); return; }
     setLoading(true); setError(false); setMsg("");
     try {
-      const res = await fetch('http://localhost:5000/api/auth/password/reset', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || '${import.meta.env.VITE_API_URL || 'http://localhost:5000'}'}/api/auth/password/reset`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ otp: otpCode, newPassword: newPw })
@@ -2562,7 +2562,7 @@ function LoginScreen({ onLogin }) {
   const handleGoogleSuccess = async (credentialResponse) => {
     setLoading(true); setError(false); setMsg("");
     try {
-      const res = await fetch('http://localhost:5000/api/auth/login/google', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || '${import.meta.env.VITE_API_URL || 'http://localhost:5000'}'}/api/auth/login/google`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ credential: credentialResponse.credential })
@@ -2867,7 +2867,7 @@ function QuickInfoTab({ showToast }) {
   const handleToggleVisibility = async (item) => {
     const updated = { ...item, hidden: !item.hidden };
     try {
-      const res = await apiFetch(`http://localhost:5000/api/info/${item.id}`, {
+      const res = await apiFetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/info/${item.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updated)
@@ -2883,7 +2883,7 @@ function QuickInfoTab({ showToast }) {
 
   const handleDelete = async (id) => {
     try {
-      await apiFetch(`http://localhost:5000/api/info/${id}`, { method: 'DELETE' });
+      await apiFetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/info/${id}`, { method: 'DELETE' });
       setInfoItems(infoItems.filter(item => item.id !== id));
       showToast("Info item removed!", "error");
     } catch (err) {
@@ -2896,7 +2896,7 @@ function QuickInfoTab({ showToast }) {
     if (!form.title.trim() || !form.value.trim()) return;
     try {
       if (editingId) {
-        const res = await apiFetch(`http://localhost:5000/api/info/${editingId}`, {
+        const res = await apiFetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/info/${editingId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(form)
@@ -2906,7 +2906,7 @@ function QuickInfoTab({ showToast }) {
         setEditingId(null);
         showToast("Info item updated!", "success");
       } else {
-        const res = await apiFetch(`http://localhost:5000/api/info`, {
+        const res = await apiFetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/info`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(form)
@@ -3047,7 +3047,7 @@ function CVTab({ showToast }) {
 
     setUploading(true);
     setProgress(1);
-    xhr.open("POST", "http://localhost:5000/api/cv/upload");
+    xhr.open("POST", `${import.meta.env.VITE_API_URL || '${import.meta.env.VITE_API_URL || 'http://localhost:5000'}'}/api/cv/upload`);
     if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
     xhr.send(formData);
   };
@@ -3084,7 +3084,7 @@ function CVTab({ showToast }) {
                 <p className="text-xs text-[#94A3B8] truncate">{cvUrl}</p>
               </div>
               <a
-                href="http://localhost:5000/api/cv/download"
+                href=`${import.meta.env.VITE_API_URL || '${import.meta.env.VITE_API_URL || 'http://localhost:5000'}'}/api/cv/download`
                 download="Ankit_Das_CV_Resume.pdf"
                 className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[rgba(37,99,235,0.15)] border border-[rgba(37,99,235,0.3)] text-[#2563EB] text-xs font-semibold hover:bg-[rgba(37,99,235,0.25)] transition-all shrink-0"
               >
@@ -3568,7 +3568,7 @@ function FeaturedTab({ showToast }) {
     }));
 
     try {
-      const res = await apiFetch('http://localhost:5000/api/projects/featured/reorder', {
+      const res = await apiFetch(`${import.meta.env.VITE_API_URL || '${import.meta.env.VITE_API_URL || 'http://localhost:5000'}'}/api/projects/featured/reorder`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ order: updatedItems.map(i => ({ id: i.id, featured_order: i.featured_order })) })
@@ -3651,7 +3651,7 @@ function ProposalsTab({ showToast }) {
   const fetchProposals = async () => {
     try {
       setLoading(true);
-      const res = await apiFetch('http://localhost:5000/api/proposals');
+      const res = await apiFetch(`${import.meta.env.VITE_API_URL || '${import.meta.env.VITE_API_URL || 'http://localhost:5000'}'}/api/proposals`);
       if (res.ok) {
         const data = await res.json();
         setProposals(data);
@@ -3666,7 +3666,7 @@ function ProposalsTab({ showToast }) {
   const deleteProposal = async (id) => {
     if (!window.confirm("Are you sure you want to delete this proposal?")) return;
     try {
-      const res = await apiFetch(`http://localhost:5000/api/proposals/${id}`, { method: 'DELETE' });
+      const res = await apiFetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/proposals/${id}`, { method: 'DELETE' });
       if (res.ok) {
         setProposals(proposals.filter(p => p.id !== id));
         if (selected?.id === id) setSelected(null);
@@ -3764,7 +3764,7 @@ function ProposalsTab({ showToast }) {
                             {f.split('-').pop()}
                           </span>
                           <a 
-                            href={`http://localhost:5000${f}`}
+                            href={`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${f}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="px-4 py-2 rounded-lg bg-[rgba(6,182,212,0.15)] text-[#06B6D4] text-xs font-bold hover:bg-[rgba(6,182,212,0.25)] transition-colors whitespace-nowrap"
@@ -3802,7 +3802,7 @@ function MessagesTab({ showToast }) {
   const fetchMessages = async () => {
     try {
       setLoading(true);
-      const res = await apiFetch('http://localhost:5000/api/messages');
+      const res = await apiFetch(`${import.meta.env.VITE_API_URL || '${import.meta.env.VITE_API_URL || 'http://localhost:5000'}'}/api/messages`);
       if (res.ok) {
         const data = await res.json();
         setMessages(data);
@@ -3817,7 +3817,7 @@ function MessagesTab({ showToast }) {
   const deleteMessage = async (id) => {
     if (!window.confirm("Are you sure you want to delete this message?")) return;
     try {
-      const res = await apiFetch(`http://localhost:5000/api/messages/${id}`, { method: 'DELETE' });
+      const res = await apiFetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/messages/${id}`, { method: 'DELETE' });
       if (res.ok) {
         setMessages(messages.filter(m => m.id !== id));
         if (selected?.id === id) setSelected(null);
@@ -4077,7 +4077,7 @@ function ContactLinksTab({ showToast }) {
   const saveLink = async () => {
     try {
       if (editing) {
-        const res = await apiFetch(`http://localhost:5000/api/contact-links/${editing.id}`, {
+        const res = await apiFetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/contact-links/${editing.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData)
@@ -4086,7 +4086,7 @@ function ContactLinksTab({ showToast }) {
         setContactLinks(prev => prev.map(l => l.id === editing.id ? { ...l, ...formData } : l));
         showToast("Link updated");
       } else {
-        const res = await apiFetch(`http://localhost:5000/api/contact-links`, {
+        const res = await apiFetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/contact-links`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData)
@@ -4105,7 +4105,7 @@ function ContactLinksTab({ showToast }) {
   const deleteLink = async (id) => {
     if (!confirm("Delete this link?")) return;
     try {
-      const res = await apiFetch(`http://localhost:5000/api/contact-links/${id}`, { method: 'DELETE' });
+      const res = await apiFetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/contact-links/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error();
       setContactLinks(prev => prev.filter(l => l.id !== id));
       showToast("Link deleted");
@@ -4117,7 +4117,7 @@ function ContactLinksTab({ showToast }) {
   const toggleHide = async (link) => {
     try {
       const updated = { ...link, hidden: link.hidden ? 0 : 1 };
-      const res = await apiFetch(`http://localhost:5000/api/contact-links/${link.id}`, {
+      const res = await apiFetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/contact-links/${link.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updated)
