@@ -24,6 +24,12 @@ CREATE TABLE projects (
     notes JSON,
     team JSON,
     hidden TINYINT(1) DEFAULT 0,
+    featured TINYINT(1) DEFAULT 0,
+    featured_order INT DEFAULT 0,
+    project_order INT DEFAULT 0,
+    status VARCHAR(100),
+    version VARCHAR(50),
+    extraInfo JSON,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
