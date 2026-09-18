@@ -151,3 +151,55 @@ CREATE TABLE IF NOT EXISTS education (
     quote_author VARCHAR(255)
 );
 
+-- Certificates table
+CREATE TABLE IF NOT EXISTS certificates (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    organization VARCHAR(255),
+    date VARCHAR(100),
+    color VARCHAR(50),
+    category VARCHAR(100),
+    link VARCHAR(500),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Gallery Folders table
+CREATE TABLE IF NOT EXISTS gallery_folders (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    color VARCHAR(50),
+    hidden TINYINT(1) DEFAULT 0,
+    images JSON,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Testimonials table
+CREATE TABLE IF NOT EXISTS testimonials (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    quote TEXT NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    role VARCHAR(255),
+    avatar VARCHAR(255),
+    avatarColor VARCHAR(100),
+    stars INT DEFAULT 5,
+    platform VARCHAR(100),
+    relation VARCHAR(100),
+    date VARCHAR(100),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Blog Posts table
+CREATE TABLE IF NOT EXISTS blog_posts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    excerpt TEXT,
+    tag VARCHAR(100),
+    tagColor VARCHAR(50),
+    readTime VARCHAR(50),
+    date VARCHAR(100),
+    emoji VARCHAR(50),
+    slug VARCHAR(255),
+    content JSON,
+    hidden TINYINT(1) DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

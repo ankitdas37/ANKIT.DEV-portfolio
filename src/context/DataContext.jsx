@@ -34,10 +34,10 @@ export function DataProvider({ children }) {
   const [projects, setProjects] = useState([]);
   const [loadingProjects, setLoadingProjects] = useState(true);
   const [categories, setCategories] = useState([]);
-  const [gallery,      setGalleryRaw]      = useState(() => load(LS.gallery,      defaultGallery));
-  const [certificates, setCertificatesRaw] = useState(() => load(LS.certificates, defaultCertificates));
-  const [testimonials, setTestimonialsRaw] = useState(() => load(LS.testimonials, defaultTestimonials));
-  const [blogPosts,    setBlogPostsRaw]    = useState(() => load(LS.blogPosts,    defaultBlogPosts));
+  const [gallery,      setGallery]      = useState([]);
+  const [certificates, setCertificates] = useState([]);
+  const [testimonials, setTestimonials] = useState([]);
+  const [blogPosts,    setBlogPosts]    = useState([]);
   const [infoItems,    setInfoItems]       = useState([]);
   const [aboutMe,      setAboutMe]         = useState(null);
   const [education,    setEducation]       = useState(null);
@@ -67,6 +67,27 @@ export function DataProvider({ children }) {
       .then(res => res.json())
       .then(data => { if (Array.isArray(data)) setCategories(data); })
       .catch(err => console.error('Error fetching categories:', err));
+  }, []);
+
+  // Fetch gallery, certificates, testimonials, and blog posts from MySQL backend
+  useEffect(() => {
+    const fetchSections = async () => {
+      try {
+        const [resGal, resCert, resTest, resBlog] = await Promise.all([
+          fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/gallery`),
+          fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/certificates`),
+          fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/testimonials`),
+          fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/blog`)
+        ]);
+        if (resGal.ok) setGallery(await resGal.json());
+        if (resCert.ok) setCertificates(await resCert.json());
+        if (resTest.ok) setTestimonials(await resTest.json());
+        if (resBlog.ok) setBlogPosts(await resBlog.json());
+      } catch (err) {
+        console.error("Error fetching dynamic sections:", err);
+      }
+    };
+    fetchSections();
   }, []);
 
   // Fetch info items and contact links from MySQL backend
@@ -156,59 +177,60 @@ export function DataProvider({ children }) {
     } catch (err) { console.error(err); }
   };
 
-  const setter = (key, setState) => (newValue) => {
-    setState(newValue);
-    save(key, newValue);
+  // Generic helpers
+  const getApiType = (setList, explicitType) => {
+    if (explicitType) return explicitType;
+    if (setList === setGallery) return 'gallery';
+    if (setList === setCertificates) return 'certificates';
+    if (setList === setTestimonials) return 'testimonials';
+    if (setList === setBlogPosts) return 'blog';
+    if (setList === setProjects) return 'projects';
+    return null;
   };
 
-  const setGallery      = setter(LS.gallery,      setGalleryRaw);
-  const setCertificates = setter(LS.certificates, setCertificatesRaw);
-  const setTestimonials = setter(LS.testimonials, setTestimonialsRaw);
-  const setBlogPosts    = setter(LS.blogPosts,    setBlogPostsRaw);
-
-  // Generic helpers
   const remove = async (list, setList, id, type) => {
-    if (type === 'projects') {
-      try {
-        await authFetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/projects/${id}`, { method: 'DELETE' });
-        setList(list.filter((item) => item.id !== id));
-      } catch (err) { console.error(err); }
-    } else {
+    const apiType = getApiType(setList, type);
+    try {
+      if (apiType) {
+        await authFetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/${apiType}/${id}`, { method: 'DELETE' });
+      }
       setList(list.filter((item) => item.id !== id));
-    }
+    } catch (err) { console.error(err); }
   };
 
   const add = async (list, setList, item, type) => {
-    if (type === 'projects') {
-      try {
-        const res = await authFetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/projects`, {
+    const apiType = getApiType(setList, type);
+    try {
+      if (apiType) {
+        const res = await authFetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/${apiType}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(item)
         });
         const savedItem = await res.json();
         setList([savedItem, ...list]);
-      } catch (err) { console.error(err); }
-    } else {
-      const newId = list.length > 0 ? Math.max(...list.map((i) => i.id)) + 1 : 1;
-      setList([...list, { ...item, id: newId }]);
-    }
+      } else {
+        const newId = list.length > 0 ? Math.max(...list.map((i) => i.id)) + 1 : 1;
+        setList([...list, { ...item, id: newId }]);
+      }
+    } catch (err) { console.error(err); }
   };
 
   const edit = async (list, setList, id, updatedItem, type) => {
-    if (type === 'projects') {
-      try {
-        const res = await authFetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/projects/${id}`, {
+    const apiType = getApiType(setList, type);
+    try {
+      if (apiType) {
+        const res = await authFetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/${apiType}/${id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(updatedItem)
         });
         const savedItem = await res.json();
         setList(list.map((item) => (item.id === id ? savedItem : item)));
-      } catch (err) { console.error(err); }
-    } else {
-      setList(list.map((item) => (item.id === id ? { ...item, ...updatedItem } : item)));
-    }
+      } else {
+        setList(list.map((item) => (item.id === id ? { ...item, ...updatedItem } : item)));
+      }
+    } catch (err) { console.error(err); }
   };
 
   // Helper: Update About Me

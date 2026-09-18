@@ -59,6 +59,10 @@ const contactLinksRoutes = require('./routes/contactLinksRoutes');
 const authRoutes = require('./routes/authRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const cvRoutes     = require('./routes/cvRoutes');
+const certificateRoutes = require('./routes/certificateRoutes');
+const galleryRoutes = require('./routes/galleryRoutes');
+const testimonialRoutes = require('./routes/testimonialRoutes');
+const blogRoutes = require('./routes/blogRoutes');
 const authMiddleware = require('./middleware/authMiddleware');
 
 // Auth route (before auth middleware)
@@ -78,6 +82,10 @@ app.use('/api/messages', messageRoutes);
 app.use('/api/contact-links', contactLinksRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/cv',     cvRoutes);
+app.use('/api/certificates', certificateRoutes);
+app.use('/api/gallery', galleryRoutes);
+app.use('/api/testimonials', testimonialRoutes);
+app.use('/api/blog', blogRoutes);
 
 // Serve static uploads
 const path = require('path');
