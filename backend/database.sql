@@ -134,3 +134,14 @@ CREATE TABLE IF NOT EXISTS admin_users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Education table
+CREATE TABLE IF NOT EXISTS education (
+    id INT PRIMARY KEY DEFAULT 1,
+    timeline JSON,
+    highlights JSON,
+    subjects JSON,
+    stats JSON,
+    quote_text TEXT,
+    quote_author VARCHAR(255)
+);
+
