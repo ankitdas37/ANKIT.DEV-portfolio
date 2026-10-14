@@ -53,14 +53,14 @@ const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString()
 
 const getClientIP = (req) => {
   return req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
-         req.connection?.remoteAddress ||
-         req.socket?.remoteAddress ||
-         'Unknown';
+    req.connection?.remoteAddress ||
+    req.socket?.remoteAddress ||
+    'Unknown';
 };
 
 const getDeviceInfo = (req) => {
   const ua = req.headers['user-agent'] || 'Unknown';
-  
+
   // Detect device
   let device = 'Unknown Device';
   if (/iPhone/i.test(ua)) device = 'iPhone';
@@ -241,18 +241,18 @@ router.post('/login', loginLimiter, async (req, res) => {
   try {
     const [rows] = await db.query('SELECT * FROM admin_users LIMIT 1');
     if (rows.length === 0) return res.status(401).json({ error: 'No admin user configured.' });
-    
+
     const admin = rows[0];
     const isMatch = await bcrypt.compare(password, admin.password_hash);
-    
+
     if (isMatch) {
       clearFailedLogins(ip);
 
       const otp = generateOTP();
       otpStore.set(admin.email, { code: otp, expires: Date.now() + 10 * 60 * 1000, attempts: 0 });
-      
+
       await sendEmail(admin.email, 'Your 2-Step Verification Code', `Your OTP code is: ${otp}. It will expire in 10 minutes.`);
-      
+
       return res.json({ requireOtp: true, message: 'Password correct. OTP sent to admin email.' });
     } else {
       recordFailedLogin(ip, req);
@@ -303,12 +303,12 @@ router.post('/otp/request', otpLimiter, async (req, res) => {
     const [rows] = await db.query('SELECT email FROM admin_users LIMIT 1');
     if (rows.length === 0) return res.status(400).json({ error: 'No admin configured' });
     const adminEmail = rows[0].email;
-    
+
     const otp = generateOTP();
     otpStore.set(adminEmail, { code: otp, expires: Date.now() + 10 * 60 * 1000, attempts: 0 });
-    
+
     await sendEmail(adminEmail, 'Your Admin OTP Code', `Your OTP code is: ${otp}. It will expire in 10 minutes.`);
-    
+
     res.json({ message: 'OTP sent successfully to admin email.' });
   } catch (error) {
     console.error('OTP request error:', error);
@@ -326,10 +326,10 @@ router.post('/otp/verify', loginLimiter, async (req, res) => {
     const [rows] = await db.query('SELECT email FROM admin_users LIMIT 1');
     if (rows.length === 0) return res.status(400).json({ error: 'No admin configured' });
     const adminEmail = rows[0].email;
-    
+
     const record = otpStore.get(adminEmail);
     if (!record) return res.status(400).json({ error: 'No OTP requested or expired' });
-    
+
     if (Date.now() > record.expires) {
       otpStore.delete(adminEmail);
       return res.status(400).json({ error: 'OTP expired. Please request a new one.' });
@@ -341,14 +341,14 @@ router.post('/otp/verify', loginLimiter, async (req, res) => {
       sendSecurityAlert('otp_bruteforce', req, { attempts: record.attempts });
       return res.status(400).json({ error: 'Too many wrong attempts. OTP invalidated. Please request a new one.' });
     }
-    
+
     if (record.code === otp) {
       otpStore.delete(adminEmail);
       const token = jwt.sign({ role: 'admin', email: adminEmail }, JWT_SECRET, { expiresIn: '1d' });
-      
+
       // Send successful login alert with IP & device info
       sendSecurityAlert('login_success', req);
-      
+
       res.json({ token, message: 'OTP verified successfully' });
     } else {
       record.attempts += 1;
@@ -372,10 +372,10 @@ router.post('/password/reset', loginLimiter, async (req, res) => {
     const [rows] = await db.query('SELECT email FROM admin_users LIMIT 1');
     if (rows.length === 0) return res.status(400).json({ error: 'No admin configured' });
     const adminEmail = rows[0].email;
-    
+
     const record = otpStore.get(adminEmail);
     if (!record) return res.status(400).json({ error: 'No OTP requested or expired' });
-    
+
     if (Date.now() > record.expires) {
       otpStore.delete(adminEmail);
       return res.status(400).json({ error: 'OTP expired' });
@@ -387,14 +387,14 @@ router.post('/password/reset', loginLimiter, async (req, res) => {
       sendSecurityAlert('otp_bruteforce', req, { attempts: record.attempts });
       return res.status(400).json({ error: 'Too many wrong attempts. OTP invalidated.' });
     }
-    
+
     if (record.code === otp) {
       const salt = await bcrypt.genSalt(10);
       const hash = await bcrypt.hash(newPassword, salt);
-      
+
       await db.query('UPDATE admin_users SET password_hash = ? WHERE email = ?', [hash, adminEmail]);
       otpStore.delete(adminEmail);
-      
+
       res.json({ message: 'Password reset successful. Please login with your new password.' });
     } else {
       record.attempts += 1;
