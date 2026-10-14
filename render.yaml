@@ -20,7 +20,7 @@ services:
       - key: DB_PASSWORD
         sync: false
       - key: DB_NAME
-        value: portfolio_db
+        value: defaultdb
       - key: GMAIL_USER
         sync: false
       - key: GMAIL_CLIENT_ID
