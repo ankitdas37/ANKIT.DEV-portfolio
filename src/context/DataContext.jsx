@@ -79,10 +79,10 @@ export function DataProvider({ children }) {
           fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/testimonials`),
           fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/blog`)
         ]);
-        if (resGal.ok) setGallery(await resGal.json());
-        if (resCert.ok) setCertificates(await resCert.json());
-        if (resTest.ok) setTestimonials(await resTest.json());
-        if (resBlog.ok) setBlogPosts(await resBlog.json());
+        if (resGal.ok) { const d = await resGal.json(); if (Array.isArray(d)) setGallery(d); }
+        if (resCert.ok) { const d = await resCert.json(); if (Array.isArray(d)) setCertificates(d); }
+        if (resTest.ok) { const d = await resTest.json(); if (Array.isArray(d)) setTestimonials(d); }
+        if (resBlog.ok) { const d = await resBlog.json(); if (Array.isArray(d)) setBlogPosts(d); }
       } catch (err) {
         console.error("Error fetching dynamic sections:", err);
       }
@@ -98,7 +98,7 @@ export function DataProvider({ children }) {
         const resInfo = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/info`);
         if (resInfo.ok) {
           const dataInfo = await resInfo.json();
-          setInfoItems(dataInfo);
+          if (Array.isArray(dataInfo)) setInfoItems(dataInfo);
         }
       } catch (err) { console.error("Error fetching info:", err); }
 
@@ -107,7 +107,7 @@ export function DataProvider({ children }) {
         const resContact = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/contact-links`);
         if (resContact.ok) {
           const dataContact = await resContact.json();
-          setContactLinks(dataContact);
+          if (Array.isArray(dataContact)) setContactLinks(dataContact);
         }
       } catch (err) { console.error("Error fetching contact links:", err); }
     };
@@ -119,7 +119,7 @@ export function DataProvider({ children }) {
     fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/skills`)
       .then(res => res.json())
       .then(data => {
-        setSkills(data);
+        if (Array.isArray(data)) setSkills(data);
         setLoadingSkills(false);
       })
       .catch(err => {
