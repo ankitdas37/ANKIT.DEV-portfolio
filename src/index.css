@@ -72,6 +72,15 @@
   }
 }
 
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+
 @theme {
   --color-bg-primary: #02050D;
   --color-bg-secondary: #050B16;
