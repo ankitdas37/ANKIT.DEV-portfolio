@@ -202,11 +202,19 @@ async function initDB() {
     // Seed default admin if none exists
     const [admins] = await conn.query('SELECT id FROM admin_users LIMIT 1');
     if (admins.length === 0) {
-      const email = process.env.ADMIN_EMAIL || 'admin@ankit.dev';
+      const email = process.env.ADMIN_EMAIL || 'ankitdas082006@gmail.com';
       const password = process.env.ADMIN_PASSWORD || 'ankit@admin2006';
       const hash = await bcrypt.hash(password, 10);
       await conn.query('INSERT INTO admin_users (email, password_hash) VALUES (?, ?)', [email, hash]);
       console.log(`✅ Default admin created: ${email}`);
+    } else {
+      // Auto-correct: if admin was seeded with the old placeholder email, update it
+      const targetEmail = process.env.ADMIN_EMAIL || 'ankitdas082006@gmail.com';
+      const [old] = await conn.query("SELECT id FROM admin_users WHERE email = 'admin@ankit.dev' LIMIT 1");
+      if (old.length > 0) {
+        await conn.query('UPDATE admin_users SET email = ? WHERE email = ?', [targetEmail, 'admin@ankit.dev']);
+        console.log(`✅ Admin email updated to: ${targetEmail}`);
+      }
     }
 
     conn.release();
