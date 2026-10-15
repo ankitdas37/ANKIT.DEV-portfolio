@@ -2439,7 +2439,7 @@ function LoginScreen({ onLogin }) {
   const [loading, setLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
 
-  const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
+  const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '403768628498-bp3iruc9m64qvh1gq9q2btqkokmtj579.apps.googleusercontent.com';
 
   const triggerShake = () => {
     setShake(true);
