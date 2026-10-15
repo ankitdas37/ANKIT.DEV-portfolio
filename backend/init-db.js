@@ -1,4 +1,5 @@
 const pool = require('./config/db');
+const bcrypt = require('bcrypt');
 
 async function initDB() {
   const queries = [
@@ -197,6 +198,17 @@ async function initDB() {
     for (const sql of queries) {
       await conn.query(sql);
     }
+
+    // Seed default admin if none exists
+    const [admins] = await conn.query('SELECT id FROM admin_users LIMIT 1');
+    if (admins.length === 0) {
+      const email = process.env.ADMIN_EMAIL || 'admin@ankit.dev';
+      const password = process.env.ADMIN_PASSWORD || 'ankit@admin2006';
+      const hash = await bcrypt.hash(password, 10);
+      await conn.query('INSERT INTO admin_users (email, password_hash) VALUES (?, ?)', [email, hash]);
+      console.log(`✅ Default admin created: ${email}`);
+    }
+
     conn.release();
     console.log('✅ All tables initialized successfully.');
   } catch (err) {
