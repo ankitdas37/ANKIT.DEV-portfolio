@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ExternalLink, Search, ChevronRight, ChevronLeft, Layout, Shield, Zap, Monitor, Code, Share2 } from "lucide-react";
+import { ExternalLink, Search, ChevronRight, ChevronLeft, Layout, Shield, Zap, Monitor, Code, Share2, FolderGit2, Code2, Sparkles } from "lucide-react";
 import { GithubIcon } from "../components/SocialIcons";
 import { useData } from "../context/DataContext";
 import toast from "react-hot-toast";
@@ -80,8 +80,47 @@ export default function ProjectsPage() {
     currentPage * ITEMS_PER_PAGE
   );
 
+  const stats = [
+    {
+      id: "projects",
+      icon: FolderGit2,
+      value: `${totalProjects}+`,
+      label: "Projects Completed",
+      color: "#A855F7",
+      bgGlow: "rgba(168,85,247,0.12)",
+      borderColor: "rgba(168,85,247,0.3)",
+    },
+    {
+      id: "tech",
+      icon: Code2,
+      value: `${uniqueTechs}+`,
+      label: "Technologies Used",
+      color: "#00BFFF",
+      bgGlow: "rgba(0,191,255,0.12)",
+      borderColor: "rgba(0,191,255,0.3)",
+    },
+    {
+      id: "deployed",
+      icon: Monitor,
+      value: `${deployedPct}%`,
+      label: "Projects Deployed",
+      color: "#10B981",
+      bgGlow: "rgba(16,185,129,0.12)",
+      borderColor: "rgba(16,185,129,0.3)",
+    },
+    {
+      id: "learning",
+      icon: Sparkles,
+      value: "Learning",
+      label: "Never Stops",
+      color: "#F59E0B",
+      bgGlow: "rgba(245,158,11,0.12)",
+      borderColor: "rgba(245,158,11,0.3)",
+    },
+  ];
+
   return (
-    <main className="min-h-screen bg-[#02050D] pt-24 pb-12 font-sans overflow-x-hidden relative">
+    <main className="min-h-screen bg-[#02050D] pt-24 pb-28 sm:pb-32 font-sans overflow-x-hidden relative">
       {/* Background elements */}
       <div className="absolute top-20 left-10 w-96 h-96 rounded-full bg-[#7C3AED] opacity-[0.03] blur-[100px] pointer-events-none" />
       <div className="absolute top-40 right-10 w-80 h-80 rounded-full bg-[#2563EB] opacity-[0.04] blur-[100px] pointer-events-none" />
@@ -89,55 +128,74 @@ export default function ProjectsPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
 
         {/* Top Hero Section */}
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 lg:gap-10 mb-8 lg:mb-16">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-5 lg:gap-10 mb-8 sm:mb-10 lg:mb-14">
           <div className="max-w-xl">
-            <div className="flex items-center gap-2 mb-4">
-              <span className="w-2 h-2 rounded-full bg-[#00BFFF] animate-pulse" />
-              <span className="text-[#00BFFF] text-sm tracking-widest font-medium uppercase font-space">My Work</span>
+            {/* Badge */}
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[rgba(0,191,255,0.25)] bg-[rgba(0,191,255,0.06)] mb-3 sm:mb-4 backdrop-blur-md">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#00BFFF] animate-pulse" />
+              <span className="text-[#00BFFF] text-xs font-mono font-semibold tracking-widest uppercase">My Work</span>
             </div>
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold font-space text-white mb-4 sm:mb-6">
-              My <span className="text-[#2563EB]">Projects</span>
+            {/* Title */}
+            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold font-space text-white mb-2 sm:mb-3 tracking-tight">
+              My <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#2563EB] via-[#00BFFF] to-[#A855F7]">Projects</span>
             </h1>
-            <p className="text-[#94A3B8] text-lg mb-2">Here are some of the projects I've built.</p>
-            <p className="text-[#94A3B8] text-lg">
-              Each project is a step towards becoming a <span className="text-[#2563EB]">better developer</span>.
+            {/* Description */}
+            <p className="text-sm sm:text-base text-[#94A3B8] leading-relaxed">
+              Here are some of the projects I've built. Each project is a step towards becoming a <span className="text-[#38BDF8] font-medium">better developer</span>.
             </p>
           </div>
 
-          <div className="flex flex-wrap lg:flex-nowrap gap-3 sm:gap-4 w-full lg:w-auto">
-            {/* Stat Cards — live data */}
-            <motion.div
-              key={totalProjects}
-              initial={{ scale: 0.9, opacity: 0.6 }} animate={{ scale: 1, opacity: 1 }}
-              className="glass rounded-xl p-4 sm:p-6 flex flex-col items-center justify-center border border-[rgba(124,58,237,0.2)] bg-[rgba(124,58,237,0.05)] w-[calc(50%-0.375rem)] sm:w-32"
-            >
-              <div className="text-[#7C3AED] mb-2"><Layout className="w-6 h-6 sm:w-8 sm:h-8" /></div>
-              <h3 className="text-white text-xl sm:text-2xl font-bold font-space">{totalProjects}+</h3>
-              <p className="text-[#94A3B8] text-[0.55rem] sm:text-[0.65rem] uppercase text-center mt-1">Projects Completed</p>
-            </motion.div>
-            <motion.div
-              key={`tech-${uniqueTechs}`}
-              initial={{ scale: 0.9, opacity: 0.6 }} animate={{ scale: 1, opacity: 1 }}
-              className="glass rounded-xl p-4 sm:p-6 flex flex-col items-center justify-center border border-[rgba(37,99,235,0.2)] bg-[rgba(37,99,235,0.05)] w-[calc(50%-0.375rem)] sm:w-32"
-            >
-              <div className="text-[#2563EB] mb-2"><Code className="w-6 h-6 sm:w-8 sm:h-8" /></div>
-              <h3 className="text-white text-xl sm:text-2xl font-bold font-space">{uniqueTechs}+</h3>
-              <p className="text-[#94A3B8] text-[0.55rem] sm:text-[0.65rem] uppercase text-center mt-1">Technologies Used</p>
-            </motion.div>
-            <motion.div
-              key={`dep-${deployedPct}`}
-              initial={{ scale: 0.9, opacity: 0.6 }} animate={{ scale: 1, opacity: 1 }}
-              className="glass rounded-xl p-4 sm:p-6 flex flex-col items-center justify-center border border-[rgba(16,185,129,0.2)] bg-[rgba(16,185,129,0.05)] w-[calc(50%-0.375rem)] sm:w-32"
-            >
-              <div className="text-[#10B981] mb-2"><Monitor className="w-6 h-6 sm:w-8 sm:h-8" /></div>
-              <h3 className="text-white text-xl sm:text-2xl font-bold font-space">{deployedPct}%</h3>
-              <p className="text-[#94A3B8] text-[0.55rem] sm:text-[0.65rem] uppercase text-center mt-1">Projects Deployed</p>
-            </motion.div>
-            <div className="glass rounded-xl p-4 sm:p-6 flex flex-col items-center justify-center border border-[rgba(245,158,11,0.2)] bg-[rgba(245,158,11,0.05)] w-[calc(50%-0.375rem)] sm:w-32">
-              <div className="text-[#F59E0B] mb-2"><svg className="w-6 h-6 sm:w-8 sm:h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg></div>
-              <h3 className="text-white text-lg sm:text-xl font-bold font-space">Learning</h3>
-              <p className="text-[#94A3B8] text-[0.55rem] sm:text-[0.65rem] uppercase text-center mt-1">Never Stops</p>
-            </div>
+          {/* Stat Cards — Responsive Mobile Telemetry / Desktop Cards */}
+          <div className="grid grid-cols-2 gap-2.5 sm:gap-3 w-full lg:flex lg:w-auto">
+            {stats.map((stat, idx) => (
+              <motion.div
+                key={stat.id}
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ delay: idx * 0.05, duration: 0.3 }}
+                whileHover={{ y: -3, scale: 1.02 }}
+                whileTap={{ scale: 0.96 }}
+                className="group relative flex items-center gap-2.5 p-2.5 sm:flex-col sm:items-center sm:justify-center sm:p-4 sm:w-32 lg:w-32 rounded-2xl bg-[rgba(8,12,25,0.7)] backdrop-blur-xl border transition-all duration-300 min-w-0 overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.3)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.5)] cursor-default"
+                style={{
+                  borderColor: stat.borderColor,
+                  background: `linear-gradient(135deg, ${stat.bgGlow} 0%, rgba(8,12,25,0.75) 100%)`,
+                }}
+              >
+                {/* Glow highlight */}
+                <div
+                  className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+                  style={{ background: `radial-gradient(circle at 50% 50%, ${stat.color}15 0%, transparent 70%)` }}
+                />
+
+                {/* Icon badge */}
+                <div
+                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 sm:mb-2 transition-transform duration-300 group-hover:scale-110"
+                  style={{
+                    backgroundColor: `${stat.color}15`,
+                    border: `1px solid ${stat.color}40`,
+                    boxShadow: `0 0 14px ${stat.color}20`,
+                  }}
+                >
+                  <stat.icon className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: stat.color }} />
+                </div>
+
+                {/* Text Container */}
+                <div className="min-w-0 flex-1 sm:text-center">
+                  <h3 className="text-base sm:text-2xl font-bold font-space text-white leading-tight truncate">
+                    {stat.value}
+                  </h3>
+                  <p className="text-[9px] sm:text-[10px] text-[#94A3B8] uppercase font-bold tracking-wider truncate mt-0.5 sm:mt-1">
+                    {stat.label}
+                  </p>
+                </div>
+
+                {/* Subtle bottom glow accent line */}
+                <div
+                  className="absolute bottom-0 inset-x-2 h-[1.5px] rounded-full opacity-30 group-hover:opacity-100 transition-opacity duration-300"
+                  style={{ background: `linear-gradient(90deg, transparent, ${stat.color}, transparent)` }}
+                />
+              </motion.div>
+            ))}
           </div>
         </div>
 
@@ -174,7 +232,7 @@ export default function ProjectsPage() {
         </div>
 
         {/* Projects Grid */}
-        <div className="flex md:grid md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8 mb-12 lg:mb-16 overflow-x-auto snap-x snap-mandatory pb-6 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8 mb-12 lg:mb-16">
           <AnimatePresence mode="popLayout">
             {currentProjects.map((project, i) => (
               <motion.article
@@ -185,7 +243,7 @@ export default function ProjectsPage() {
                 exit={{ opacity: 0, scale: 0.9 }}
                 transition={{ duration: 0.4 }}
                 onClick={() => navigate(`/project/${project.id}`)}
-                className="group relative glass rounded-2xl overflow-hidden border border-[rgba(37,99,235,0.15)] bg-[rgba(7,17,31,0.6)] flex flex-col hover:border-[rgba(37,99,235,0.4)] transition-all duration-500 cursor-pointer snap-center shrink-0 w-[75vw] sm:w-[300px] md:w-auto self-stretch"
+                className="group relative glass rounded-2xl overflow-hidden border border-[rgba(37,99,235,0.15)] bg-[rgba(7,17,31,0.6)] flex flex-col hover:border-[rgba(37,99,235,0.4)] transition-all duration-500 cursor-pointer w-full self-stretch"
                 style={{
                   boxShadow: `0 10px 40px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(255,255,255,0.02)`,
                 }}

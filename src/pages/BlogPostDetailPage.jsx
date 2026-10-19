@@ -334,7 +334,7 @@ export default function BlogPostDetailPage() {
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 pb-24">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 pb-32 sm:pb-36">
         <div className="grid lg:grid-cols-[1fr_300px] gap-14 items-start">
 
           {/* ── Article ─────────────────────────────────────────── */}

@@ -22,12 +22,12 @@ export default function BackToTop() {
           exit={{ opacity: 0, scale: 0.5, y: 20 }}
           transition={{ duration: 0.3 }}
           onClick={scrollToTop}
-          className="fixed bottom-8 right-8 z-50 w-12 h-12 flex items-center justify-center rounded-xl bg-gradient-to-br from-[#2563EB] to-[#7C3AED] text-white shadow-[0_0_20px_rgba(37,99,235,0.5)] hover:shadow-[0_0_30px_rgba(37,99,235,0.7)] transition-all"
+          className="fixed bottom-24 right-4 sm:bottom-24 sm:right-6 lg:bottom-8 lg:right-8 z-40 w-10 h-10 sm:w-11 sm:h-11 lg:w-12 lg:h-12 flex items-center justify-center rounded-xl bg-gradient-to-br from-[#2563EB] to-[#7C3AED] text-white shadow-[0_4px_20px_rgba(37,99,235,0.5)] hover:shadow-[0_0_30px_rgba(37,99,235,0.7)] transition-all"
           aria-label="Scroll to top"
-          whileHover={{ scale: 1.1, translateY: -2 }}
-          whileTap={{ scale: 0.9 }}
+          whileHover={{ scale: 1.08, translateY: -2 }}
+          whileTap={{ scale: 0.92 }}
         >
-          <ArrowUp className="w-5 h-5" aria-hidden="true" />
+          <ArrowUp className="w-4 h-4 sm:w-5 sm:h-5" aria-hidden="true" />
         </motion.button>
       )}
     </AnimatePresence>

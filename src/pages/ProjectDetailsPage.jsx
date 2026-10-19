@@ -343,7 +343,7 @@ function StatPill({ icon: Icon, label, value, color, clickable, delay = 0 }) {
       transition={{ duration: 0.5, delay, ease: [0.22, 1, 0.36, 1] }}
       whileHover={{ y: -4, scale: 1.03, transition: { duration: 0.2 } }}
       whileTap={{ scale: 0.97 }}
-      className={`relative flex items-center gap-3 px-4 py-3 rounded-xl overflow-hidden transition-colors
+      className={`relative flex items-center gap-2 sm:gap-3 p-2 sm:px-4 sm:py-3 rounded-xl overflow-hidden transition-colors min-w-0 w-full
         bg-[rgba(255,255,255,0.03)] border
         ${clickable
           ? "border-[rgba(236,72,153,0.25)] hover:border-[rgba(236,72,153,0.55)] cursor-pointer"
@@ -360,7 +360,7 @@ function StatPill({ icon: Icon, label, value, color, clickable, delay = 0 }) {
 
       {/* icon bubble with pulse ring on hover */}
       <motion.div
-        className="relative w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+        className="relative w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center flex-shrink-0"
         style={{ backgroundColor: `${color}18`, border: `1px solid ${color}40` }}
         whileHover={{ boxShadow: `0 0 14px ${color}50` }}
         transition={{ duration: 0.25 }}
@@ -369,7 +369,7 @@ function StatPill({ icon: Icon, label, value, color, clickable, delay = 0 }) {
           whileHover={{ rotate: clickable ? 0 : 12, scale: 1.15 }}
           transition={{ type: "spring", stiffness: 400, damping: 15 }}
         >
-          <Icon className="w-4 h-4" style={{ color }} />
+          <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" style={{ color }} />
         </motion.div>
         {/* ping ring */}
         {clickable && (
@@ -378,9 +378,9 @@ function StatPill({ icon: Icon, label, value, color, clickable, delay = 0 }) {
       </motion.div>
 
       <div className="min-w-0 flex-1">
-        <p className="text-[10px] uppercase tracking-wider text-[#64748B] font-semibold truncate">{label}</p>
-        <p className={`text-sm font-bold leading-tight flex items-center gap-1 w-full ${clickable ? "text-[#EC4899]" : "text-white"}`}>
-          <span className="truncate block w-full">{value}</span>
+        <p className="text-[9px] sm:text-[10px] uppercase tracking-wider text-[#64748B] font-semibold truncate">{label}</p>
+        <p className={`text-xs sm:text-sm font-bold leading-tight flex items-center gap-1 w-full min-w-0 ${clickable ? "text-[#EC4899]" : "text-white"}`}>
+          <span className="truncate block flex-1">{value}</span>
           {clickable && (
             <motion.span
               className="text-[10px] font-normal opacity-50 ml-1 flex-shrink-0"
@@ -538,7 +538,7 @@ export default function ProjectDetailsPage() {
   const accentColor = project.color || "#3B82F6";
 
   return (
-    <main className="min-h-screen bg-[#02050D] overflow-x-hidden">
+    <main className="min-h-screen bg-[#02050D] pb-32 sm:pb-36 overflow-x-hidden w-full max-w-full">
 
       {/* ── LIGHTBOX ─────────────────────────────────────── */}
       <AnimatePresence>
@@ -577,36 +577,36 @@ export default function ProjectDetailsPage() {
       </div>
 
       {/* ── STICKY NAV BAR ───────────────────────────────── */}
-      <div className="sticky top-0 z-50 border-b border-[rgba(255,255,255,0.04)] bg-[rgba(2,5,13,0.85)] backdrop-blur-xl">
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
-          <Link to="/projects" className="inline-flex items-center gap-2 text-[#94A3B8] text-sm hover:text-white transition-colors group">
+      <div className="sticky top-0 z-50 border-b border-[rgba(255,255,255,0.05)] bg-[rgba(2,5,13,0.88)] backdrop-blur-xl">
+        <div className="max-w-[1400px] mx-auto px-3.5 sm:px-6 h-14 flex items-center justify-between gap-2">
+          <Link to="/projects" className="inline-flex items-center gap-1.5 text-[#94A3B8] text-xs sm:text-sm hover:text-white transition-colors group shrink-0">
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-            <span>Back to Projects</span>
+            <span><span className="hidden xs:inline">Back to </span>Projects</span>
           </Link>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             {project.demo && (
               <a href={project.demo} target="_blank" rel="noreferrer"
-                className="hidden sm:flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold bg-[#3B82F6] text-white hover:bg-[#2563EB] transition-colors">
+                className="hidden sm:flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-[#3B82F6] text-white hover:bg-[#2563EB] transition-colors">
                 <Globe className="w-3 h-3" /> Live Demo
               </a>
             )}
             {project.github && (
               <a href={project.github} target="_blank" rel="noreferrer"
-                className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] text-white hover:bg-[rgba(255,255,255,0.1)] transition-colors">
-                <GithubIcon className="w-3 h-3" /> GitHub
+                className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-full text-xs font-bold bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] text-white hover:bg-[rgba(255,255,255,0.1)] transition-colors">
+                <GithubIcon className="w-3 h-3" /> <span className="hidden xs:inline">GitHub</span>
               </a>
             )}
 
             <div className="relative">
               <button
                 onClick={() => setShareOpen(true)}
-                className="flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-bold bg-[rgba(168,85,247,0.15)] border border-[rgba(168,85,247,0.3)] text-[#C084FC] hover:bg-[rgba(168,85,247,0.25)] transition-all"
+                className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 rounded-full text-xs font-bold bg-[rgba(168,85,247,0.15)] border border-[rgba(168,85,247,0.3)] text-[#C084FC] hover:bg-[rgba(168,85,247,0.25)] transition-all"
               >
                 <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
                   <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
                 </svg>
-                Share
+                <span>Share</span>
               </button>
             </div>
           </div>
@@ -616,52 +616,52 @@ export default function ProjectDetailsPage() {
       <div className="relative z-10">
 
         {/* ── HERO ─────────────────────────────────────────── */}
-        <section ref={heroRef} className="relative pt-16 pb-0 overflow-hidden">
-          <div className="max-w-[1400px] mx-auto px-4 sm:px-6">
+        <section ref={heroRef} className="relative pt-10 sm:pt-16 pb-0 overflow-hidden w-full max-w-full">
+          <div className="max-w-[1400px] mx-auto px-3.5 sm:px-6">
 
             {/* Hero Top Content */}
-            <div className="grid lg:grid-cols-[1fr_1.1fr] gap-10 lg:gap-16 items-center pb-16">
+            <div className="grid lg:grid-cols-[1fr_1.1fr] gap-8 lg:gap-16 items-center pb-12 sm:pb-16">
 
               {/* Left Text */}
               <motion.div
-                initial={{ opacity: 0, x: -40 }} animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-                className="min-w-0"
+                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                className="min-w-0 w-full"
               >
                 {/* Badge */}
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.03)] mb-6">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.03)] mb-4 sm:mb-6">
                   <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: accentColor }} />
-                  <span className="text-xs font-semibold text-[#94A3B8] uppercase tracking-widest">{Array.isArray(project.projectType) ? project.projectType.join(", ") : (project.projectType || "Project")}</span>
+                  <span className="text-[11px] sm:text-xs font-semibold text-[#94A3B8] uppercase tracking-widest">{Array.isArray(project.projectType) ? project.projectType.join(", ") : (project.projectType || "Project")}</span>
                 </div>
 
                 {/* Logo + Title */}
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5 mb-4 sm:mb-5">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3.5 sm:gap-5 mb-4 sm:mb-5 min-w-0 w-full">
                   {project.logo ? (
-                    <div className="w-14 h-14 sm:w-16 sm:h-16 flex-shrink-0 rounded-2xl overflow-hidden border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.04)] p-1.5 sm:p-2 shadow-[0_0_20px_rgba(0,0,0,0.4)]">
+                    <div className="w-12 h-12 sm:w-16 sm:h-16 flex-shrink-0 rounded-2xl overflow-hidden border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.04)] p-1.5 sm:p-2 shadow-[0_0_20px_rgba(0,0,0,0.4)]">
                       <img src={project.logo} alt={`${project.title} logo`} className="w-full h-full object-contain" />
                     </div>
                   ) : (
-                    <div className="w-14 h-14 sm:w-16 sm:h-16 flex-shrink-0 rounded-2xl flex items-center justify-center border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.03)]"
+                    <div className="w-12 h-12 sm:w-16 sm:h-16 flex-shrink-0 rounded-2xl flex items-center justify-center border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.03)]"
                       style={{ boxShadow: `0 0 20px ${accentColor}30` }}>
-                      <Cpu className="w-7 h-7 sm:w-8 sm:h-8" style={{ color: accentColor }} />
+                      <Cpu className="w-6 h-6 sm:w-8 sm:h-8" style={{ color: accentColor }} />
                     </div>
                   )}
-                  <h1 className="text-3xl sm:text-5xl lg:text-6xl font-space font-extrabold text-white leading-tight sm:leading-[1.05] tracking-tight">
+                  <h1 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-space font-extrabold text-white leading-tight sm:leading-[1.08] tracking-tight break-words min-w-0 flex-1">
                     {project.title}
                   </h1>
                 </div>
 
-                <p className="text-sm sm:text-base lg:text-lg text-[#94A3B8] leading-relaxed mb-6 sm:mb-8 max-w-lg">
+                <p className="text-sm sm:text-base lg:text-lg text-[#94A3B8] leading-relaxed mb-6 sm:mb-8 max-w-lg break-words">
                   {project.description}
                 </p>
 
                 {/* Tech Pills Row */}
-                <div className="flex flex-wrap gap-2 mb-8 sm:mb-10">
+                <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-6 sm:mb-10">
                   {techStack.slice(0, 6).map((tech, i) => {
                     const icon = getTechIcon(tech);
                     return (
-                      <span key={i} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] text-[#CBD5E1] hover:border-[rgba(255,255,255,0.18)] transition-all cursor-default">
-                        {icon && <img src={icon} alt={tech} className="w-3.5 h-3.5 object-contain" />}
+                      <span key={i} className="inline-flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-semibold bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] text-[#CBD5E1] hover:border-[rgba(255,255,255,0.18)] transition-all cursor-default">
+                        {icon && <img src={icon} alt={tech} className="w-3 h-3 sm:w-3.5 sm:h-3.5 object-contain" />}
                         {tech}
                       </span>
                     );
@@ -669,57 +669,57 @@ export default function ProjectDetailsPage() {
                 </div>
 
                 {/* CTA Buttons */}
-                <div className="flex flex-wrap gap-2.5 sm:gap-3">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full">
                   <a href={project.demo || "#"} target="_blank" rel="noreferrer"
-                    className={`group relative inline-flex items-center gap-2 px-5 py-3 sm:px-7 sm:py-3.5 rounded-xl font-bold text-xs sm:text-sm overflow-hidden transition-all ${project.demo ? "text-white" : "text-[#64748B] cursor-not-allowed opacity-50"}`}
+                    className={`group relative inline-flex items-center justify-center gap-2 px-4 py-3 sm:px-7 sm:py-3.5 rounded-xl font-bold text-xs sm:text-sm overflow-hidden transition-all flex-1 sm:flex-none ${project.demo ? "text-white" : "text-[#64748B] cursor-not-allowed opacity-50"}`}
                     style={project.demo ? { background: `linear-gradient(135deg, ${accentColor}, #7C3AED)`, boxShadow: `0 0 30px ${accentColor}40` } : {}}>
                     <Globe className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    Live Demo
+                    <span>Live Demo</span>
                     <ExternalLink className="w-3 h-3 sm:w-3.5 sm:h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                     {project.demo && <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />}
                   </a>
 
                   <a href={project.github || "#"} target="_blank" rel="noreferrer"
-                    className={`inline-flex items-center gap-2 px-5 py-3 sm:px-7 sm:py-3.5 rounded-xl font-bold text-xs sm:text-sm border transition-all ${project.github ? "bg-[rgba(255,255,255,0.04)] border-[rgba(255,255,255,0.1)] text-white hover:bg-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.2)]" : "border-[rgba(255,255,255,0.05)] text-[#64748B] cursor-not-allowed opacity-50"}`}>
+                    className={`inline-flex items-center justify-center gap-2 px-4 py-3 sm:px-7 sm:py-3.5 rounded-xl font-bold text-xs sm:text-sm border transition-all flex-1 sm:flex-none ${project.github ? "bg-[rgba(255,255,255,0.04)] border-[rgba(255,255,255,0.1)] text-white hover:bg-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.2)]" : "border-[rgba(255,255,255,0.05)] text-[#64748B] cursor-not-allowed opacity-50"}`}>
                     <GithubIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    Source Code
+                    <span>Source Code</span>
                   </a>
 
                   {project.youtubeUrl && (
                     <a href={project.youtubeUrl} target="_blank" rel="noreferrer"
-                      className="inline-flex items-center gap-2 px-4 py-3 sm:px-5 sm:py-3.5 rounded-xl font-bold text-xs sm:text-sm bg-[rgba(239,68,68,0.08)] border border-[rgba(239,68,68,0.2)] text-[#EF4444] hover:bg-[rgba(239,68,68,0.15)] transition-all">
+                      className="inline-flex items-center justify-center gap-2 px-4 py-3 sm:px-5 sm:py-3.5 rounded-xl font-bold text-xs sm:text-sm bg-[rgba(239,68,68,0.08)] border border-[rgba(239,68,68,0.2)] text-[#EF4444] hover:bg-[rgba(239,68,68,0.15)] transition-all">
                       <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-current" />
-                      Watch Demo
+                      <span>Watch Demo</span>
                     </a>
                   )}
 
                   {project.docsUrl && (
                     <a href={project.docsUrl} target="_blank" rel="noreferrer"
-                      className="inline-flex items-center gap-2 px-4 py-3 sm:px-5 sm:py-3.5 rounded-xl font-bold text-xs sm:text-sm bg-[rgba(16,185,129,0.08)] border border-[rgba(16,185,129,0.2)] text-[#10B981] hover:bg-[rgba(16,185,129,0.15)] transition-all">
+                      className="inline-flex items-center justify-center gap-2 px-4 py-3 sm:px-5 sm:py-3.5 rounded-xl font-bold text-xs sm:text-sm bg-[rgba(16,185,129,0.08)] border border-[rgba(16,185,129,0.2)] text-[#10B981] hover:bg-[rgba(16,185,129,0.15)] transition-all">
                       <BookOpen className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                      Docs
+                      <span>Docs</span>
                     </a>
                   )}
 
                   {/* Share button — hero */}
                   <button
                     onClick={() => setShareOpen(o => !o)}
-                    className="inline-flex items-center gap-2 px-4 py-3 sm:px-5 sm:py-3.5 rounded-xl font-bold text-xs sm:text-sm bg-[rgba(168,85,247,0.08)] border border-[rgba(168,85,247,0.25)] text-[#C084FC] hover:bg-[rgba(168,85,247,0.15)] transition-all"
+                    className="inline-flex items-center justify-center gap-2 px-4 py-3 sm:px-5 sm:py-3.5 rounded-xl font-bold text-xs sm:text-sm bg-[rgba(168,85,247,0.08)] border border-[rgba(168,85,247,0.25)] text-[#C084FC] hover:bg-[rgba(168,85,247,0.15)] transition-all"
                   >
                     <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                       <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
                       <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
                     </svg>
-                    Share
+                    <span>Share</span>
                   </button>
                 </div>
               </motion.div>
 
               {/* Right — Hero Image */}
               <motion.div
-                initial={{ opacity: 0, scale: 0.9, y: 30 }} animate={{ opacity: 1, scale: 1, y: 0 }}
+                initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
-                className="relative"
+                className="relative min-w-0 w-full"
               >
                 {/* Glow orb */}
                 <div className="absolute inset-[-20%] rounded-full blur-[100px] opacity-20 pointer-events-none" style={{ backgroundColor: accentColor }} />
@@ -727,11 +727,11 @@ export default function ProjectDetailsPage() {
                 {/* Main Image Frame */}
                 <div className="relative rounded-2xl overflow-hidden border border-[rgba(255,255,255,0.1)] shadow-[0_30px_80px_rgba(0,0,0,0.6)] cursor-zoom-in" onClick={() => displayImages.length > 0 && setLightbox(0)}>
                   {/* Browser chrome bar */}
-                  <div className="flex items-center gap-1.5 px-4 py-3 bg-[rgba(255,255,255,0.03)] border-b border-[rgba(255,255,255,0.06)]">
+                  <div className="flex items-center gap-1.5 px-3 sm:px-4 py-2.5 sm:py-3 bg-[rgba(255,255,255,0.03)] border-b border-[rgba(255,255,255,0.06)]">
                     <div className="w-2.5 h-2.5 rounded-full bg-[#EF4444]" />
                     <div className="w-2.5 h-2.5 rounded-full bg-[#F59E0B]" />
                     <div className="w-2.5 h-2.5 rounded-full bg-[#10B981]" />
-                    <div className="flex-1 mx-4 h-5 rounded bg-[rgba(255,255,255,0.05)] flex items-center px-3">
+                    <div className="flex-1 mx-2 sm:mx-4 h-5 rounded bg-[rgba(255,255,255,0.05)] flex items-center px-2 sm:px-3">
                       <span className="text-[10px] text-[#64748B] truncate">{project.demo || "https://your-project.vercel.app"}</span>
                     </div>
                   </div>
@@ -751,37 +751,47 @@ export default function ProjectDetailsPage() {
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-[rgba(0,0,0,0.3)] to-transparent pointer-events-none" />
                     {/* Zoom hint */}
-                    <div className="absolute bottom-3 right-3 px-2 py-1 rounded bg-black/50 backdrop-blur-sm text-[10px] text-white/60 font-medium">
+                    <div className="absolute bottom-2.5 right-2.5 sm:bottom-3 sm:right-3 px-2 py-1 rounded bg-black/50 backdrop-blur-sm text-[9px] sm:text-[10px] text-white/70 font-medium">
                       Click to expand
                     </div>
                   </div>
                 </div>
 
-
-
               </motion.div>
             </div>
 
             {/* ── STATS BAR ──────────────────────────────── */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 border-t border-[rgba(255,255,255,0.05)] pt-6">
-              <StatPill delay={0.42} icon={Layers} label="Project Type" value={Array.isArray(project.projectType) ? project.projectType.join(", ") : (project.projectType || "Personal")} color="#A855F7" />
-              {project.team?.length > 0 ? (
-                <div onClick={scrollToTeam} className="cursor-pointer">
-                  <StatPill delay={0.5} icon={Users} label="Team" value={`${project.team.length} Members`} color="#EC4899" clickable />
-                </div>
-              ) : (
-                <StatPill delay={0.5} icon={Users} label="Team" value="Solo" color="#EC4899" />
-              )}
-              <StatPill delay={0.58} icon={Calendar} label="Started" value={project.startDate || "—"} color="#38BDF8" />
-              <StatPill delay={0.66} icon={Clock} label="Duration" value={project.duration || "Ongoing"} color="#10B981" />
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 border-t border-[rgba(255,255,255,0.05)] pt-6">
+              <div className="min-w-0">
+                <StatPill delay={0.42} icon={Layers} label="Project Type" value={Array.isArray(project.projectType) ? project.projectType.join(", ") : (project.projectType || "Personal")} color="#A855F7" />
+              </div>
+              <div className="min-w-0">
+                {project.team?.length > 0 ? (
+                  <div onClick={scrollToTeam} className="cursor-pointer min-w-0">
+                    <StatPill delay={0.5} icon={Users} label="Team" value={`${project.team.length} Members`} color="#EC4899" clickable />
+                  </div>
+                ) : (
+                  <StatPill delay={0.5} icon={Users} label="Team" value="Solo" color="#EC4899" />
+                )}
+              </div>
+              <div className="min-w-0">
+                <StatPill delay={0.58} icon={Calendar} label="Started" value={project.startDate || "—"} color="#38BDF8" />
+              </div>
+              <div className="min-w-0">
+                <StatPill delay={0.66} icon={Clock} label="Duration" value={project.duration || "Ongoing"} color="#10B981" />
+              </div>
             </div>
           </div>
         </section>
 
         {/* ── TAB NAV ──────────────────────────────────────── */}
         <div className="sticky top-14 z-40 border-b border-[rgba(255,255,255,0.06)] bg-[rgba(2,5,13,0.92)] backdrop-blur-xl">
-          <div className="max-w-[1400px] mx-auto px-4 sm:px-6">
-            <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-1">
+          <div className="max-w-[1400px] mx-auto px-3 sm:px-6 relative">
+            {/* Left/Right subtle fade indicators for mobile scroll */}
+            <div className="absolute left-0 top-0 bottom-0 w-3 bg-gradient-to-r from-[rgba(2,5,13,0.92)] to-transparent pointer-events-none z-10 sm:hidden" />
+            <div className="absolute right-0 top-0 bottom-0 w-5 bg-gradient-to-l from-[rgba(2,5,13,0.92)] to-transparent pointer-events-none z-10 sm:hidden" />
+
+            <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none [scrollbar-width:none] [-webkit-overflow-scrolling:touch] py-1.5">
               {[
                 { id: "overview", label: "Overview", icon: FileText, color: "#38BDF8" },
                 { id: "screenshots", label: "Screenshots", icon: ImageIcon, color: "#10B981" },
@@ -793,10 +803,11 @@ export default function ProjectDetailsPage() {
               ].map(({ id, label, icon: Icon, color, className = "" }) => {
                 const isActive = activeTab === id;
                 return (
-                  <button
+                  <motion.button
                     key={id}
                     onClick={() => setActiveTab(id)}
-                    className={`relative flex items-center gap-2 px-5 py-2.5 my-1 text-sm font-bold whitespace-nowrap rounded-xl transition-all duration-300 group ${className} ${isActive ? "z-10 scale-[1.02]" : "hover:bg-[rgba(255,255,255,0.04)] opacity-60 hover:opacity-100"}`}
+                    whileTap={{ scale: 0.94 }}
+                    className={`relative flex items-center gap-1.5 sm:gap-2 px-3.5 py-2 sm:px-5 sm:py-2.5 my-1 text-xs sm:text-sm font-bold whitespace-nowrap rounded-xl transition-all duration-300 group ${className} ${isActive ? "z-10 scale-[1.02]" : "hover:bg-[rgba(255,255,255,0.04)] opacity-60 hover:opacity-100"}`}
                     style={{ color: isActive ? color : undefined }}
                   >
                     {/* Active tab background pill morph */}
@@ -819,7 +830,7 @@ export default function ProjectDetailsPage() {
                       transition={{ duration: 0.5 }}
                       className="relative z-10"
                     >
-                      <Icon className="w-4 h-4" />
+                      <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                     </motion.div>
 
                     <span className="relative z-10">
@@ -831,7 +842,7 @@ export default function ProjectDetailsPage() {
                       <motion.span
                         animate={isActive ? { scale: [1, 1.25, 1] } : { scale: 1 }}
                         transition={{ duration: 0.35 }}
-                        className="relative z-10 ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-black"
+                        className="relative z-10 ml-1 px-1.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-black"
                         style={{ backgroundColor: `${color}${isActive ? "30" : "15"}`, color, border: `1px solid ${color}40` }}
                       >
                         {project.team.length}
@@ -841,13 +852,13 @@ export default function ProjectDetailsPage() {
                       <motion.span
                         animate={isActive ? { scale: [1, 1.25, 1] } : { scale: 1 }}
                         transition={{ duration: 0.35 }}
-                        className="relative z-10 ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-black"
+                        className="relative z-10 ml-1 px-1.5 py-0.5 rounded-full text-[9px] sm:text-[10px] font-black"
                         style={{ backgroundColor: `${color}${isActive ? "30" : "15"}`, color, border: `1px solid ${color}40` }}
                       >
                         {techStack.length}
                       </motion.span>
                     )}
-                  </button>
+                  </motion.button>
                 );
               })}
             </div>
@@ -1487,6 +1498,71 @@ export default function ProjectDetailsPage() {
             </div>
           )}
         </AnimatePresence>
+
+        {/* ── MOBILE PROJECT ACTION DOCK (Fixed at bottom on mobile) ── */}
+        <aside
+          className="fixed bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] inset-x-3 z-50 lg:hidden pointer-events-auto"
+          aria-label="Project actions"
+        >
+          <div className="max-w-md mx-auto flex items-center justify-between gap-1.5 p-1.5 rounded-2xl bg-[rgba(6,10,24,0.92)] backdrop-blur-2xl border border-[rgba(124,58,237,0.35)] shadow-[0_20px_50px_rgba(0,0,0,0.85),_0_0_25px_rgba(124,58,237,0.2)]">
+            {/* Back Button */}
+            <Link
+              to="/projects"
+              className="flex items-center justify-center gap-1 px-3 py-2.5 rounded-xl bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] text-[#94A3B8] hover:text-white transition-all text-xs font-bold active:scale-92 shrink-0"
+              aria-label="Back to projects"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span className="hidden xs:inline">Back</span>
+            </Link>
+
+            {/* Live Demo button */}
+            {project.demo && (
+              <a
+                href={project.demo}
+                target="_blank"
+                rel="noreferrer"
+                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold text-white shadow-lg active:scale-95 transition-all relative overflow-hidden"
+                style={{
+                  background: `linear-gradient(135deg, ${accentColor}, #7C3AED)`,
+                  boxShadow: `0 4px 18px ${accentColor}40`,
+                }}
+              >
+                <span className="relative flex h-2 w-2 shrink-0">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-300 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
+                </span>
+                <Globe className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">Live Demo</span>
+                <ExternalLink className="w-3 h-3 opacity-80 shrink-0" />
+              </a>
+            )}
+
+            {/* Source Code button */}
+            {project.github && (
+              <a
+                href={project.github}
+                target="_blank"
+                rel="noreferrer"
+                className={`${project.demo ? "px-3" : "flex-1"} py-2.5 flex items-center justify-center gap-1.5 rounded-xl bg-[rgba(255,255,255,0.06)] border border-[rgba(255,255,255,0.12)] text-white hover:bg-[rgba(255,255,255,0.1)] transition-all text-xs font-bold active:scale-95 shrink-0`}
+              >
+                <GithubIcon className="w-3.5 h-3.5 shrink-0" />
+                <span>{project.demo ? "Code" : "Source Code"}</span>
+              </a>
+            )}
+
+            {/* Share button */}
+            <button
+              onClick={() => setShareOpen(true)}
+              className="flex items-center justify-center px-3 py-2.5 rounded-xl bg-[rgba(168,85,247,0.15)] border border-[rgba(168,85,247,0.3)] text-[#C084FC] hover:bg-[rgba(168,85,247,0.25)] transition-all text-xs font-bold active:scale-92 shrink-0"
+              aria-label="Share this project"
+            >
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+              </svg>
+            </button>
+          </div>
+        </aside>
       </div>
     </main>
   );

@@ -75,13 +75,13 @@ export default function Navbar() {
         transition={{ duration: 0.8, type: "spring", bounce: 0.4 }}
         className={`left-1/2 -translate-x-1/2 z-50 transition-all duration-500 ${
           scrolled
-            ? "absolute lg:fixed top-0 lg:top-4 w-full lg:w-[90%] max-w-7xl bg-transparent lg:bg-[rgba(10,15,30,0.75)] lg:backdrop-blur-xl border-transparent lg:border-[rgba(124,58,237,0.3)] shadow-none lg:shadow-[0_20px_50px_rgba(0,0,0,0.5),_0_0_20px_rgba(124,58,237,0.1)] rounded-none lg:rounded-2xl py-2 lg:py-1 px-4 lg:px-2"
-            : "absolute top-0 w-full bg-transparent border-b border-transparent py-2 px-4 sm:px-6 lg:px-8"
+            ? "fixed top-0 lg:top-4 w-full lg:w-[90%] max-w-7xl bg-[rgba(6,10,24,0.85)] lg:bg-[rgba(10,15,30,0.75)] backdrop-blur-xl border-b lg:border border-[rgba(255,255,255,0.05)] lg:border-[rgba(124,58,237,0.3)] shadow-[0_10px_30px_rgba(0,0,0,0.5)] lg:shadow-[0_20px_50px_rgba(0,0,0,0.5),_0_0_20px_rgba(124,58,237,0.1)] rounded-none lg:rounded-2xl py-1.5 lg:py-1 px-3 sm:px-6 lg:px-2"
+            : "absolute top-0 w-full bg-transparent border-b border-transparent py-2 px-3 sm:px-6 lg:px-8"
         }`}
         role="banner"
       >
         <div className="w-full">
-          <div className="flex items-center justify-between h-16 px-2 sm:px-4">
+          <div className="flex items-center justify-between h-14 sm:h-16 px-1 sm:px-4">
 
             {/* Logo */}
             <motion.a
@@ -92,11 +92,11 @@ export default function Navbar() {
               whileHover={{ scale: 1.05 }}
             >
               <div className="relative">
-                <Code2 className="w-6 h-6 text-[#A855F7] group-hover:text-[#00BFFF] transition-colors" aria-hidden="true" />
+                <Code2 className="w-5 h-5 sm:w-6 sm:h-6 text-[#A855F7] group-hover:text-[#00BFFF] transition-colors" aria-hidden="true" />
                 <div className="absolute inset-0 blur-sm bg-[#A855F7] opacity-50 group-hover:opacity-80 transition-opacity" />
               </div>
               <div className="flex flex-col">
-                <span className="font-space font-bold text-xl leading-none">
+                <span className="font-space font-bold text-lg sm:text-xl leading-none">
                   <span className="text-white">ANKIT</span>
                   <span className="text-[#A855F7]">.DEV</span>
                 </span>
@@ -137,8 +137,21 @@ export default function Navbar() {
               })}
             </nav>
 
-            {/* Right side — Resume + Hamburger */}
-            <div className="flex items-center gap-3">
+            {/* Right side — Resume */}
+            <div className="flex items-center gap-2 sm:gap-3">
+              {/* Mobile Quick CV Action */}
+              <motion.a
+                href={aboutMe?.cv_url || "#"}
+                onClick={handleDownloadCV}
+                className="sm:hidden inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-gradient-to-r from-[#A855F7] to-[#2563EB] rounded-xl shadow-[0_0_15px_rgba(168,85,247,0.4)] border border-[rgba(255,255,255,0.15)] active:scale-95 transition-all"
+                whileTap={{ scale: 0.92 }}
+                aria-label="Download CV"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Resume</span>
+              </motion.a>
+
+              {/* Desktop Resume */}
               <motion.a
                 href={aboutMe?.cv_url || "#"}
                 onClick={handleDownloadCV}

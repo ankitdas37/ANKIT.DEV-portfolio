@@ -624,7 +624,7 @@ export default function ContactPage() {
       {/* Active animated background */}
       <ParticleBackground />
 
-      <div className="relative z-10 max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10 pt-16 pb-10">
+      <div className="relative z-10 max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10 pt-24 sm:pt-28 pb-28 sm:pb-32">
 
         {/* Hero */}
         <motion.div className="mb-6 sm:mb-8" initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }}>

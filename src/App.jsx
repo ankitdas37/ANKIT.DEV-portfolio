@@ -4,7 +4,6 @@ import "./index.css";
 import { DataProvider } from "./context/DataContext";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
-import BackToTop from "./components/BackToTop";
 import MobileDock from "./components/MobileDock";
 import ScrollToTop from "./components/ScrollToTop";
 import Home from "./pages/Home";
@@ -24,7 +23,7 @@ function AppLayout() {
   const isProjectDetails = pathname.startsWith("/project/");
 
   return (
-    <div className="min-h-screen bg-[#02050D] relative selection:bg-[rgba(124,58,237,0.3)] selection:text-white">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#02050D] relative selection:bg-[rgba(124,58,237,0.3)] selection:text-white">
 
       {/* Ambient Background Glows — hidden on admin */}
       {!isAdmin && (
@@ -65,8 +64,7 @@ function AppLayout() {
           <Route path="/admin"        element={<AdminPage />} />
         </Routes>
         {!isAdmin && <Footer />}
-        {!isAdmin && <BackToTop />}
-        {!isAdmin && <MobileDock />}
+        {!isAdmin && !isProjectDetails && <MobileDock />}
       </div>
     </div>
   );
