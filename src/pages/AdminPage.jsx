@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Lock, LayoutDashboard, FolderGit2, Image, Award,
@@ -1649,8 +1649,8 @@ function TestimonialsTab({ showToast }) {
               {editingId && (
                 <button onClick={() => { setOpen(false); setForm(blank); setEditingId(null); }} className="px-5 py-2.5 rounded-xl border border-[rgba(255,255,255,0.1)] text-[#94A3B8] text-sm font-semibold hover:bg-[rgba(255,255,255,0.05)]">Cancel</button>
               )}
-              <button onClick={handleSave} className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#A855F7] to-[#EC4899] text-white text-sm font-bold hover:opacity-90 transition-opacity">
-                <Save className="w-4 h-4" /> {editingId ? "Update" : "Add"} Testimonial
+              <button onClick={handleSave} className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#2563EB] to-[#7C3AED] text-white text-sm font-bold hover:opacity-90 transition-opacity">
+                {editingId ? <Save className="w-4 h-4" /> : <Plus className="w-4 h-4" />} {editingId ? "Save Changes" : "Add Testimonial"}
               </button>
             </div>
           </div>
@@ -1660,28 +1660,36 @@ function TestimonialsTab({ showToast }) {
   );
 }
 
+/* ─── Blog Tab ───────────────────────────────────────────────── */
 function BlogTab({ showToast }) {
-  const { blogPosts, setBlogPosts, add, remove } = useData();
+  const { blogPosts, setBlogPosts, add, edit, remove } = useData();
   const blank = { title: "", excerpt: "", tag: "Tutorial", tagColor: "#10B981", readTime: "5 min read", date: "", emoji: "📝", slug: "", image: "" };
   const [form, setForm] = useState(blank);
   const [open, setOpen] = useState(false);
   const [editingPostId, setEditingPostId] = useState(null);
   const onChange = (e) => setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
 
-  const handleAdd = () => {
-    if (!form.title.trim()) return;
+  const handleAdd = async () => {
+    if (!form.title.trim()) {
+      showToast("Title is required", "warning");
+      return;
+    }
     const slug = form.slug || form.title.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
     
-    if (editingPostId) {
-      const updated = blogPosts.map(p => p.id === editingPostId ? { ...p, ...form, slug } : p);
-      setBlogPosts(updated);
-      showToast("Blog post updated!");
-    } else {
-      add(blogPosts, setBlogPosts, { ...form, slug, content: [] });
-      showToast("Blog post added!");
+    try {
+      if (editingPostId) {
+        const post = blogPosts.find(p => p.id === editingPostId);
+        await edit(blogPosts, setBlogPosts, editingPostId, { ...(post || {}), ...form, slug }, 'blog');
+        showToast("Blog post updated!", "success");
+      } else {
+        await add(blogPosts, setBlogPosts, { ...form, slug, content: [] }, 'blog');
+        showToast("Blog post added!", "success");
+      }
+      setForm(blank); setOpen(false); setEditingPostId(null);
+    } catch (err) {
+      console.error(err);
+      showToast(err.message || "Failed to save blog post", "error");
     }
-    
-    setForm(blank); setOpen(false); setEditingPostId(null);
   };
 
   return (
@@ -1721,9 +1729,14 @@ function BlogTab({ showToast }) {
               <div className="flex items-center gap-2 flex-shrink-0">
                 <select
                   value={p.homeOrder || ''}
-                  onChange={(e) => {
-                    const updated = blogPosts.map(post => post.id === p.id ? { ...post, homeOrder: parseInt(e.target.value) || 0 } : post);
-                    setBlogPosts(updated);
+                  onChange={async (e) => {
+                    const val = parseInt(e.target.value) || 0;
+                    try {
+                      await edit(blogPosts, setBlogPosts, p.id, { homeOrder: val }, 'blog');
+                      showToast("Order updated!", "success");
+                    } catch (err) {
+                      showToast("Failed to update order", "error");
+                    }
                   }}
                   className="bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] rounded-lg px-2 py-1.5 focus:border-[#A855F7] text-xs text-white outline-none cursor-pointer hover:bg-[rgba(255,255,255,0.08)] transition-colors"
                   title="Home Page Position"
@@ -1737,10 +1750,14 @@ function BlogTab({ showToast }) {
                   <option value="6" className="bg-[#0f172a] text-white">6th</option>
                 </select>
                 <button
-                  onClick={() => {
-                    const updated = blogPosts.map(post => post.id === p.id ? { ...post, showOnHome: !post.showOnHome } : post);
-                    setBlogPosts(updated);
-                    showToast(p.showOnHome ? "Removed from Home" : "Added to Home", "success");
+                  onClick={async () => {
+                    try {
+                      const nextVal = !p.showOnHome;
+                      await edit(blogPosts, setBlogPosts, p.id, { showOnHome: nextVal }, 'blog');
+                      showToast(nextVal ? "Added to Home" : "Removed from Home", "success");
+                    } catch (err) {
+                      showToast("Failed to toggle Home display", "error");
+                    }
                   }}
                   className={`px-2 py-1.5 rounded-lg text-xs font-bold transition-colors ${p.showOnHome ? 'bg-[rgba(16,185,129,0.15)] text-[#10B981]' : 'bg-[rgba(255,255,255,0.05)] text-[#94A3B8] hover:bg-[rgba(255,255,255,0.1)]'}`}
                   title="Toggle display on Home Page"
@@ -1763,15 +1780,17 @@ function BlogTab({ showToast }) {
                 </button>
                 <VisibilityBtn
                   hidden={p.hidden}
-                  onClick={() => {
-                    const updated = blogPosts.map(post =>
-                      post.id === p.id ? { ...post, hidden: !post.hidden } : post
-                    );
-                    setBlogPosts(updated);
-                    showToast(p.hidden ? "Post is now visible!" : "Post hidden from blog.");
+                  onClick={async () => {
+                    try {
+                      const nextHidden = !p.hidden;
+                      await edit(blogPosts, setBlogPosts, p.id, { hidden: nextHidden }, 'blog');
+                      showToast(nextHidden ? "Post hidden from blog." : "Post is now visible!", "success");
+                    } catch (err) {
+                      showToast("Failed to update visibility", "error");
+                    }
                   }}
                 />
-                <DeleteBtn onClick={() => { remove(blogPosts, setBlogPosts, p.id); showToast("Post removed!"); }} />
+                <DeleteBtn onClick={() => { remove(blogPosts, setBlogPosts, p.id, 'blog'); showToast("Post removed!"); }} />
               </div>
             </div>
           ))}
@@ -1827,11 +1846,13 @@ function BlogTab({ showToast }) {
 
 /* ─── Rich Blog Content Editor ───────────────────────────────── */
 function BlogContentEditor({ blogPosts, setBlogPosts, showToast }) {
+  const { edit } = useData();
   const [selectedPostId, setSelectedPostId] = useState(null);
   const [blocks, setBlocks] = useState([]);
   const [addingType, setAddingType] = useState(null);
   const [newBlock, setNewBlock] = useState({});
   const [editingIdx, setEditingIdx] = useState(null);
+  const [saving, setSaving] = useState(false);
 
   const selectedPost = blogPosts.find((p) => p.id === selectedPostId);
 
@@ -1843,12 +1864,22 @@ function BlogContentEditor({ blogPosts, setBlogPosts, showToast }) {
     setEditingIdx(null);
   };
 
-  const saveBlocks = () => {
-    const updated = blogPosts.map((p) =>
-      p.id === selectedPostId ? { ...p, content: blocks } : p
-    );
-    setBlogPosts(updated);
-    showToast("Content saved!");
+  const saveBlocks = async () => {
+    if (!selectedPostId) {
+      showToast("Please select a post first", "warning");
+      return;
+    }
+    setSaving(true);
+    try {
+      const post = blogPosts.find((p) => p.id === selectedPostId);
+      await edit(blogPosts, setBlogPosts, selectedPostId, { ...(post || {}), content: blocks }, 'blog');
+      showToast("Content blocks saved to database!", "success");
+    } catch (err) {
+      console.error(err);
+      showToast(err.message || "Failed to save content", "error");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const moveBlock = (idx, dir) => {
@@ -2002,9 +2033,10 @@ function BlogContentEditor({ blogPosts, setBlogPosts, showToast }) {
               </p>
               <button
                 onClick={saveBlocks}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#A855F7] text-white text-xs font-bold hover:opacity-90 transition-opacity"
+                disabled={saving}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#A855F7] text-white text-xs font-bold hover:opacity-90 transition-opacity disabled:opacity-50"
               >
-                <Save className="w-3.5 h-3.5" /> Save Content
+                {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />} {saving ? "Saving to Database..." : "Save Content"}
               </button>
             </div>
 
@@ -2272,7 +2304,7 @@ function BlogContentEditor({ blogPosts, setBlogPosts, showToast }) {
                   onClick={commitBlock}
                   className="flex items-center gap-1.5 px-5 py-2 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#A855F7] text-white text-xs font-bold hover:opacity-90 transition-opacity"
                 >
-                  <Plus className="w-3.5 h-3.5" /> Add Block
+                  {editingIdx !== null ? <Save className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />} {editingIdx !== null ? "Update Block" : "Add Block"}
                 </button>
                 <button
                   onClick={() => { setAddingType(null); setNewBlock({}); }}
@@ -2283,6 +2315,19 @@ function BlogContentEditor({ blogPosts, setBlogPosts, showToast }) {
               </div>
             </div>
           )}
+
+          {/* Bottom Save Button */}
+          {blocks.length > 0 && (
+            <div className="flex justify-end pt-4 border-t border-[rgba(255,255,255,0.06)] mt-4">
+              <button
+                onClick={saveBlocks}
+                disabled={saving}
+                className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#06B6D4] text-white text-sm font-bold hover:opacity-90 transition-opacity disabled:opacity-50"
+              >
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} {saving ? "Saving to Database..." : "Save All Content Blocks"}
+              </button>
+            </div>
+          )}
         </>
       )}
     </SectionCard>
@@ -2290,7 +2335,6 @@ function BlogContentEditor({ blogPosts, setBlogPosts, showToast }) {
 }
 
 /* ─── WYSIWYG Rich Text Editor ───────────────────────────────── */
-import { useRef, useCallback } from "react";
 function RichTextEditor({ value, onChange, handleRichImageUpload }) {
   const editorRef = useRef(null);
   const fileRef   = useRef(null);
@@ -2876,28 +2920,39 @@ function QuickInfoTab({ showToast }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updated)
       });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || "Failed to update visibility");
+      }
       const updatedItem = await res.json();
-      setInfoItems(infoItems.map(i => i.id === item.id ? updatedItem : i));
+      setInfoItems(prev => (prev || []).map(i => i.id === item.id ? updatedItem : i));
       showToast(updatedItem.hidden ? "Info item hidden." : "Info item visible!", updatedItem.hidden ? "warning" : "success");
     } catch (err) {
       console.error(err);
-      showToast("Error updating visibility", "error");
+      showToast(err.message || "Error updating visibility", "error");
     }
   };
 
   const handleDelete = async (id) => {
     try {
-      await apiFetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/info/${id}`, { method: 'DELETE' });
-      setInfoItems(infoItems.filter(item => item.id !== id));
+      const res = await apiFetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/info/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || "Failed to remove item");
+      }
+      setInfoItems(prev => (prev || []).filter(item => item.id !== id));
       showToast("Info item removed!", "error");
     } catch (err) {
       console.error(err);
-      showToast("Error removing item", "error");
+      showToast(err.message || "Error removing item", "error");
     }
   };
 
   const handleSave = async () => {
-    if (!form.title.trim() || !form.value.trim()) return;
+    if (!form.title.trim() || !form.value.trim()) {
+      showToast("Title and Value are required", "warning");
+      return;
+    }
     try {
       if (editingId) {
         const res = await apiFetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/info/${editingId}`, {
@@ -2905,8 +2960,12 @@ function QuickInfoTab({ showToast }) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(form)
         });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.message || "Failed to update item");
+        }
         const updatedItem = await res.json();
-        setInfoItems(infoItems.map(item => item.id === editingId ? updatedItem : item));
+        setInfoItems(prev => (prev || []).map(item => item.id === editingId ? updatedItem : item));
         setEditingId(null);
         showToast("Info item updated!", "success");
       } else {
@@ -2915,15 +2974,19 @@ function QuickInfoTab({ showToast }) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(form)
         });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.message || "Failed to add item");
+        }
         const newItem = await res.json();
-        setInfoItems([...infoItems, newItem]);
+        setInfoItems(prev => [...(prev || []), newItem]);
         showToast("Info item added!", "success");
       }
       setForm(blank);
       setOpen(false);
     } catch (err) {
       console.error(err);
-      showToast("Error saving item", "error");
+      showToast(err.message || "Error saving item", "error");
     }
   };
 

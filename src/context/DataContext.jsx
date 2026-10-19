@@ -30,6 +30,15 @@ function save(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
 }
 
+const authFetch = async (url, options = {}) => {
+  const token = sessionStorage.getItem("admin_token");
+  const headers = { ...options.headers };
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  return fetch(url, { ...options, headers });
+};
+
 export function DataProvider({ children }) {
   const [projects, setProjects] = useState([]);
   const [loadingProjects, setLoadingProjects] = useState(true);
@@ -207,13 +216,23 @@ export function DataProvider({ children }) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(item)
         });
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.message || `Failed to add ${apiType}`);
+        }
         const savedItem = await res.json();
         setList([savedItem, ...list]);
+        return savedItem;
       } else {
         const newId = list.length > 0 ? Math.max(...list.map((i) => i.id)) + 1 : 1;
-        setList([...list, { ...item, id: newId }]);
+        const newItem = { ...item, id: newId };
+        setList([...list, newItem]);
+        return newItem;
       }
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error(err);
+      throw err;
+    }
   };
 
   const edit = async (list, setList, id, updatedItem, type) => {
@@ -225,12 +244,22 @@ export function DataProvider({ children }) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(updatedItem)
         });
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.message || `Failed to update ${apiType}`);
+        }
         const savedItem = await res.json();
         setList(list.map((item) => (item.id === id ? savedItem : item)));
+        return savedItem;
       } else {
+        const merged = { ...updatedItem, id };
         setList(list.map((item) => (item.id === id ? { ...item, ...updatedItem } : item)));
+        return merged;
       }
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error(err);
+      throw err;
+    }
   };
 
   // Helper: Update About Me

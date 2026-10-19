@@ -47,17 +47,18 @@ INSERT IGNORE INTO categories (name) VALUES
 -- Info Items (Quick Info Bar) table
 CREATE TABLE IF NOT EXISTS info_items (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    icon VARCHAR(50) NOT NULL,
-    title VARCHAR(100) NOT NULL,
-    value VARCHAR(100) NOT NULL,
-    sub VARCHAR(100) NOT NULL,
+    icon VARCHAR(50) DEFAULT '',
+    title VARCHAR(255) NOT NULL,
+    value VARCHAR(255) NOT NULL,
+    sub VARCHAR(255) DEFAULT '',
+    hidden TINYINT(1) DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Default Info Items (only inserted if the table is empty to prevent duplicates on re-run)
-INSERT INTO info_items (icon, title, value, sub)
+INSERT INTO info_items (icon, title, value, sub, hidden)
 SELECT * FROM (
-    SELECT '🎓' as icon, 'Education' as title, 'Diploma in' as value, 'Computer Engineering' as sub
+    SELECT '🎓' as icon, 'Education' as title, 'Diploma in' as value, 'Computer Engineering' as sub, 0 as hidden
     UNION ALL SELECT '💻', 'Projects', '12+', 'Completed Projects'
     UNION ALL SELECT '⭐', 'Experience', 'Fresher', 'Learning Everyday'
     UNION ALL SELECT '⚡', 'Focus', 'Full Stack', 'Web Development'
@@ -203,7 +204,10 @@ CREATE TABLE IF NOT EXISTS blog_posts (
     date VARCHAR(100),
     emoji VARCHAR(50),
     slug VARCHAR(255),
-    content JSON,
+    image VARCHAR(500) DEFAULT '',
+    showOnHome TINYINT(1) DEFAULT 0,
+    homeOrder INT DEFAULT 0,
+    content LONGTEXT,
     hidden TINYINT(1) DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

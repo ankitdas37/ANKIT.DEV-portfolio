@@ -43,10 +43,11 @@ async function initDB() {
     // Info Items
     `CREATE TABLE IF NOT EXISTS info_items (
       id INT AUTO_INCREMENT PRIMARY KEY,
-      icon VARCHAR(50) NOT NULL,
-      title VARCHAR(100) NOT NULL,
-      value VARCHAR(100) NOT NULL,
-      sub VARCHAR(100) NOT NULL,
+      icon VARCHAR(50) DEFAULT '',
+      title VARCHAR(255) NOT NULL,
+      value VARCHAR(255) NOT NULL,
+      sub VARCHAR(255) DEFAULT '',
+      hidden TINYINT(1) DEFAULT 0,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`,
 
@@ -186,7 +187,10 @@ async function initDB() {
       date VARCHAR(100),
       emoji VARCHAR(50),
       slug VARCHAR(255),
-      content JSON,
+      image VARCHAR(500) DEFAULT '',
+      showOnHome TINYINT(1) DEFAULT 0,
+      homeOrder INT DEFAULT 0,
+      content LONGTEXT,
       hidden TINYINT(1) DEFAULT 0,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`,
@@ -196,7 +200,93 @@ async function initDB() {
     const conn = await pool.getConnection();
     console.log('✅ DB connected. Initializing tables...');
     for (const sql of queries) {
-      await conn.query(sql);
+      try {
+        await conn.query(sql);
+      } catch (qErr) {
+        console.warn('⚠️ Table creation warning:', qErr.message);
+      }
+    }
+
+    // ─── Auto-Migrations for existing tables ─────────────────
+    // 1. Ensure info_items has 'hidden' column
+    try {
+      const [infoCols] = await conn.query("SHOW COLUMNS FROM info_items LIKE 'hidden'");
+      if (infoCols.length === 0) {
+        await conn.query("ALTER TABLE info_items ADD COLUMN hidden TINYINT(1) DEFAULT 0");
+        console.log("✅ Added 'hidden' column to info_items");
+      }
+    } catch (e) {
+      console.warn("⚠️ info_items hidden check:", e.message);
+    }
+
+    // 2. Ensure projects has 'featured' and 'featured_order'
+    try {
+      const [featCols] = await conn.query("SHOW COLUMNS FROM projects LIKE 'featured'");
+      if (featCols.length === 0) {
+        await conn.query("ALTER TABLE projects ADD COLUMN featured TINYINT(1) DEFAULT 0");
+      }
+      const [orderCols] = await conn.query("SHOW COLUMNS FROM projects LIKE 'featured_order'");
+      if (orderCols.length === 0) {
+        await conn.query("ALTER TABLE projects ADD COLUMN featured_order INT DEFAULT 0");
+      }
+    } catch (e) {
+      console.warn("⚠️ projects featured cols check:", e.message);
+    }
+
+    // 3. Ensure blog_posts has image, showOnHome, homeOrder, hidden, content
+    try {
+      const [blogCols] = await conn.query("SHOW COLUMNS FROM blog_posts");
+      const names = blogCols.map(c => c.Field);
+      if (!names.includes('image')) {
+        await conn.query("ALTER TABLE blog_posts ADD COLUMN image VARCHAR(500) DEFAULT ''");
+      }
+      if (!names.includes('showOnHome')) {
+        await conn.query("ALTER TABLE blog_posts ADD COLUMN showOnHome TINYINT(1) DEFAULT 0");
+      }
+      if (!names.includes('homeOrder')) {
+        await conn.query("ALTER TABLE blog_posts ADD COLUMN homeOrder INT DEFAULT 0");
+      }
+      if (!names.includes('hidden')) {
+        await conn.query("ALTER TABLE blog_posts ADD COLUMN hidden TINYINT(1) DEFAULT 0");
+      }
+      if (!names.includes('content')) {
+        await conn.query("ALTER TABLE blog_posts ADD COLUMN content LONGTEXT");
+      }
+    } catch (e) {
+      console.warn("⚠️ blog_posts column check:", e.message);
+    }
+
+    // ─── Default Seeding if empty ────────────────────────────
+    // Seed default info items if none exist
+    try {
+      const [infoRows] = await conn.query("SELECT COUNT(*) as count FROM info_items");
+      if (infoRows[0].count === 0) {
+        await conn.query(`
+          INSERT INTO info_items (icon, title, value, sub, hidden) VALUES
+            ('🎓', 'Education', 'Diploma in', 'Computer Engineering', 0),
+            ('💻', 'Projects', '12+', 'Completed Projects', 0),
+            ('⭐', 'Experience', 'Fresher', 'Learning Everyday', 0),
+            ('⚡', 'Focus', 'Full Stack', 'Web Development', 0),
+            ('🌍', 'Location', 'India', 'Earth 🌎', 0)
+        `);
+        console.log("✅ Seeded default info_items.");
+      }
+    } catch (e) {
+      console.warn("⚠️ info_items seed check:", e.message);
+    }
+
+    // Seed default categories if none exist
+    try {
+      const [catRows] = await conn.query("SELECT COUNT(*) as count FROM categories");
+      if (catRows[0].count === 0) {
+        await conn.query(`
+          INSERT IGNORE INTO categories (name) VALUES
+            ('Personal'), ('College'), ('Client'), ('Team'), ('Open Source')
+        `);
+        console.log("✅ Seeded default categories.");
+      }
+    } catch (e) {
+      console.warn("⚠️ categories seed check:", e.message);
     }
 
     // Seed default admin if none exists
