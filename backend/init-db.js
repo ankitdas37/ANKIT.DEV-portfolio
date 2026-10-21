@@ -194,6 +194,23 @@ async function initDB() {
       hidden TINYINT(1) DEFAULT 0,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`,
+
+    // Team Profiles
+    `CREATE TABLE IF NOT EXISTS team_profiles (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      role VARCHAR(255) DEFAULT '',
+      email VARCHAR(255) DEFAULT '',
+      photo VARCHAR(500) DEFAULT '',
+      github VARCHAR(500) DEFAULT '',
+      linkedin VARCHAR(500) DEFAULT '',
+      instagram VARCHAR(500) DEFAULT '',
+      twitter VARCHAR(500) DEFAULT '',
+      website VARCHAR(500) DEFAULT '',
+      bio TEXT,
+      skills VARCHAR(500) DEFAULT '',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`,
   ];
 
   try {
@@ -287,6 +304,32 @@ async function initDB() {
       }
     } catch (e) {
       console.warn("⚠️ categories seed check:", e.message);
+    }
+
+    // Seed default team profile if none exists
+    try {
+      const [teamRows] = await conn.query("SELECT COUNT(*) as count FROM team_profiles");
+      if (teamRows[0].count === 0) {
+        await conn.query(`
+          INSERT INTO team_profiles 
+            (name, role, email, photo, github, linkedin, instagram, website, bio, skills)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [
+          'Ankit Das',
+          'Lead Full Stack Developer',
+          'ankitdas082006@gmail.com',
+          'https://res.cloudinary.com/gfd8dnch/image/upload/v1792094606/ufsjtup6pratlr8de3zt.jpg',
+          'https://github.com/ankitdas37',
+          'https://linkedin.com/in/ankitdas',
+          'https://www.instagram.com/the.ankit.das?stkn=Z3l6MzRiZDR3czF1',
+          'https://ankit-dev-portfolio.vercel.app',
+          'Full Stack Developer passionate about crafting modern, interactive web applications and scalable solutions.',
+          'React, Node.js, Next.js, MySQL, Tailwind CSS'
+        ]);
+        console.log("✅ Seeded default team profile for Ankit Das.");
+      }
+    } catch (e) {
+      console.warn("⚠️ team_profiles seed check:", e.message);
     }
 
     // Seed default admin if none exists

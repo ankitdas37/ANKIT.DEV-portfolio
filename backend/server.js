@@ -64,6 +64,7 @@ const certificateRoutes = require('./routes/certificateRoutes');
 const galleryRoutes = require('./routes/galleryRoutes');
 const testimonialRoutes = require('./routes/testimonialRoutes');
 const blogRoutes = require('./routes/blogRoutes');
+const teamProfileRoutes = require('./routes/teamProfileRoutes');
 const authMiddleware = require('./middleware/authMiddleware');
 
 // Auth route (before auth middleware)
@@ -87,6 +88,7 @@ app.use('/api/certificates', certificateRoutes);
 app.use('/api/gallery', galleryRoutes);
 app.use('/api/testimonials', testimonialRoutes);
 app.use('/api/blog', blogRoutes);
+app.use('/api/team-profiles', teamProfileRoutes);
 
 // Serve static uploads
 const path = require('path');

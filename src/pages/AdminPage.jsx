@@ -5,8 +5,9 @@ import {
   MessageSquare, BookOpen, Plus, Trash2, LogOut,
   Eye, EyeOff, Save, Shield, ChevronRight, X, Edit2,
   UploadCloud, Loader2, Tags, ArrowLeft, Folder, Info, UserCircle, Cpu, Star, ArrowUp, ArrowDown, FileText, Mail, SplitSquareHorizontal, GraduationCap, CheckCircle2, Share2, DownloadCloud,
-  Menu, ExternalLink
+  Menu, ExternalLink, Users, UserPlus, Globe, Search, Sparkles, Check, CheckCircle
 } from "lucide-react";
+import { GithubIcon, LinkedinIcon, InstagramIcon, XIcon } from "../components/SocialIcons";
 import { useData } from "../context/DataContext";
 import imageCompression from "browser-image-compression";
 import ReactMarkdown from "react-markdown";
@@ -33,6 +34,7 @@ const TABS = [
   { id: "education",  label: "My Education",icon: GraduationCap },
   { id: "skills",     label: "Skills",      icon: Cpu },
   { id: "projects",   label: "Projects",    icon: FolderGit2 },
+  { id: "team_profiles", label: "Team Profiles", icon: Users },
   { id: "featured",   label: "Featured",    icon: Star },
   { id: "categories", label: "Categories",  icon: Tags },
   { id: "gallery",    label: "Gallery",     icon: Image },
@@ -590,11 +592,13 @@ function SkillsTab({ showToast }) {
 }
 
 function ProjectsTab({ showToast }) {
-  const { projects, setProjects, add, remove, edit, categories } = useData();
+  const { projects, setProjects, add, remove, edit, categories, teamProfiles = [] } = useData();
   const blank = { title: "", description: "", tech: "", github: "", demo: "", youtubeUrl: "", docsUrl: "", startDate: "", duration: "", color: "#7C3AED", image: "", logo: "", projectType: [], architecture: "", screenshots: [""], notes: [""], team: [], hidden: false, status: "", version: "", extraInfo: [] };
   const [form, setForm] = useState(blank);
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [showProfilePicker, setShowProfilePicker] = useState(false);
+  const [pickerSearch, setPickerSearch] = useState("");
   // "rich" = one big textarea with ## headings + - bullets; "simple" = individual note cards
   const [notesMode, setNotesMode] = useState("rich");
   // For rich mode: the combined raw text
@@ -674,9 +678,9 @@ function ProjectsTab({ showToast }) {
     const cleanedForm = {
       ...form,
       tech: processedTech,
-      screenshots: (form.screenshots || []).filter(s => s.trim()),
-      notes: (form.notes || []).filter(n => n.trim()),
-      team: (form.team || []).filter(t => t.name.trim()),
+      screenshots: (form.screenshots || []).filter(s => typeof s === 'string' && s.trim()),
+      notes: (form.notes || []).filter(n => typeof n === 'string' && n.trim()),
+      team: (form.team || []).filter(t => t && typeof t.name === 'string' && t.name.trim()),
       image: form.screenshots?.[0] || form.image || "",
       logo: form.logo || "",
       hidden: form.hidden || false,
@@ -991,19 +995,196 @@ function ProjectsTab({ showToast }) {
             </div>
 
             {/* Team Manager */}
-            <div className="sm:col-span-2 p-4 rounded-xl border border-[rgba(255,255,255,0.05)] bg-[rgba(16,185,129,0.05)]">
-              <label className="text-sm font-semibold text-white mb-3 flex items-center justify-between">
-                Team Members
-                <button onClick={() => handleArrayAdd('team', { name: '', role: '', photo: '', github: '', instagram: '', linkedin: '', email: '' })} className="text-xs text-[#10B981] hover:text-[#34D399] flex items-center gap-1">
-                  <Plus className="w-3 h-3" /> Add Member
-                </button>
-              </label>
+            <div className="sm:col-span-2 p-4 rounded-xl border border-[rgba(255,255,255,0.05)] bg-[rgba(16,185,129,0.05)] space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-white">Team Members</span>
+                  {form.team?.length > 0 && (
+                    <span className="px-2 py-0.5 rounded-full bg-[rgba(16,185,129,0.15)] text-[#10B981] text-xs font-bold border border-[rgba(16,185,129,0.3)]">
+                      {form.team.length} {form.team.length === 1 ? 'member' : 'members'}
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => setShowProfilePicker(true)}
+                    className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-[rgba(124,58,237,0.25)] to-[rgba(37,99,235,0.25)] hover:from-[rgba(124,58,237,0.4)] hover:to-[rgba(37,99,235,0.4)] border border-[rgba(124,58,237,0.4)] text-[#C084FC] hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm"
+                  >
+                    <Users className="w-3.5 h-3.5 text-[#A855F7]" />
+                    <span>Select from Team Profiles</span>
+                    {teamProfiles.length > 0 && (
+                      <span className="ml-1 px-1.5 py-0.2 rounded-md bg-[rgba(168,85,247,0.3)] text-white text-[10px]">
+                        {teamProfiles.length}
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleArrayAdd('team', { name: '', role: '', photo: '', github: '', instagram: '', linkedin: '', email: '' })}
+                    className="px-3 py-1.5 rounded-lg bg-[rgba(255,255,255,0.04)] hover:bg-[rgba(255,255,255,0.08)] border border-[rgba(255,255,255,0.08)] text-[#94A3B8] hover:text-white text-xs font-semibold flex items-center gap-1.5 transition-all"
+                  >
+                    <Plus className="w-3.5 h-3.5 text-[#10B981]" /> Add Custom
+                  </button>
+                </div>
+              </div>
+
+              {/* Profile Picker Modal */}
+              {showProfilePicker && (
+                <div className="p-4 rounded-xl bg-[rgba(5,10,20,0.95)] border border-[rgba(124,58,237,0.4)] shadow-2xl space-y-3">
+                  <div className="flex items-center justify-between pb-2 border-b border-[rgba(255,255,255,0.08)]">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg bg-[rgba(124,58,237,0.2)] flex items-center justify-center text-[#A855F7]">
+                        <Users className="w-3.5 h-3.5" />
+                      </div>
+                      <div>
+                        <h4 className="font-space font-bold text-white text-sm">Add from Saved Team Profiles</h4>
+                        <p className="text-[11px] text-[#94A3B8]">Pick a team profile to automatically add them with all social & contact info</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowProfilePicker(false)}
+                      className="p-1 rounded-lg text-[#94A3B8] hover:text-white bg-[rgba(255,255,255,0.05)] hover:bg-[rgba(255,255,255,0.1)] transition-all"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Search filter for profiles */}
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#64748B]" />
+                    <input
+                      type="text"
+                      value={pickerSearch}
+                      onChange={(e) => setPickerSearch(e.target.value)}
+                      placeholder="Search profiles by name, role, email..."
+                      className="w-full pl-8 pr-3 py-1.5 rounded-lg bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] text-white text-xs placeholder:text-[#475569] focus:outline-none focus:border-[#7C3AED]"
+                    />
+                  </div>
+
+                  {/* Profile list */}
+                  <div className="max-h-60 overflow-y-auto space-y-2 pr-1" data-lenis-prevent="true">
+                    {teamProfiles.length === 0 ? (
+                      <div className="text-center py-6 px-4 rounded-xl border border-dashed border-[rgba(255,255,255,0.08)]">
+                        <Users className="w-6 h-6 mx-auto text-[#64748B] mb-2" />
+                        <p className="text-xs font-semibold text-white">No Team Profiles Saved Yet</p>
+                        <p className="text-[11px] text-[#64748B] mt-1">Open the "Team Profiles" tab from the sidebar to create reusable team profiles.</p>
+                      </div>
+                    ) : (
+                      teamProfiles
+                        .filter(p => !pickerSearch || p.name?.toLowerCase().includes(pickerSearch.toLowerCase()) || p.role?.toLowerCase().includes(pickerSearch.toLowerCase()) || p.email?.toLowerCase().includes(pickerSearch.toLowerCase()))
+                        .map(p => {
+                          const alreadyAdded = (form.team || []).some(m => m.name?.trim().toLowerCase() === p.name?.trim().toLowerCase());
+                          return (
+                            <div
+                              key={p.id}
+                              className="flex items-center justify-between p-2.5 rounded-xl bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] hover:border-[rgba(124,58,237,0.3)] hover:bg-[rgba(124,58,237,0.04)] transition-all"
+                            >
+                              <div className="flex items-center gap-3 min-w-0">
+                                {p.photo ? (
+                                  <img src={p.photo} alt={p.name} className="w-9 h-9 rounded-full object-cover border border-[rgba(255,255,255,0.1)] flex-shrink-0" />
+                                ) : (
+                                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#2563EB] flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
+                                    {p.name?.charAt(0) || "?"}
+                                  </div>
+                                )}
+                                <div className="min-w-0">
+                                  <p className="text-xs font-bold text-white truncate">{p.name}</p>
+                                  <p className="text-[11px] text-[#A855F7] font-medium truncate">{p.role || "Member"}</p>
+                                  {p.email && <p className="text-[10px] text-[#64748B] truncate">{p.email}</p>}
+                                </div>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  handleArrayAdd('team', {
+                                    name: p.name,
+                                    role: p.role || '',
+                                    photo: p.photo || '',
+                                    github: p.github || '',
+                                    instagram: p.instagram || '',
+                                    linkedin: p.linkedin || '',
+                                    email: p.email || '',
+                                  });
+                                  showToast(`Added ${p.name} to project team!`, "success");
+                                }}
+                                className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all flex-shrink-0 ${
+                                  alreadyAdded
+                                    ? "bg-[rgba(16,185,129,0.15)] text-[#10B981] border border-[rgba(16,185,129,0.3)] hover:bg-[rgba(16,185,129,0.25)]"
+                                    : "bg-[rgba(124,58,237,0.25)] text-white hover:bg-[rgba(124,58,237,0.4)] border border-[rgba(124,58,237,0.4)]"
+                                }`}
+                              >
+                                {alreadyAdded ? (
+                                  <>
+                                    <Check className="w-3 h-3" /> Added (+1)
+                                  </>
+                                ) : (
+                                  <>
+                                    <Plus className="w-3 h-3" /> Add
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          );
+                        })
+                    )}
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-4">
                 {(form.team || []).map((member, idx) => (
-                  <div key={idx} className="flex flex-col gap-3 p-4 rounded-lg bg-[rgba(0,0,0,0.2)] border border-[rgba(255,255,255,0.05)] relative">
-                    <button onClick={() => handleArrayRemove('team', idx)} className="absolute top-4 right-4 p-2 rounded-lg bg-[rgba(239,68,68,0.1)] text-red-400 hover:bg-[rgba(239,68,68,0.2)]">
+                  <div key={idx} className="flex flex-col gap-3 p-4 rounded-xl bg-[rgba(0,0,0,0.3)] border border-[rgba(255,255,255,0.06)] relative group">
+                    <button onClick={() => handleArrayRemove('team', idx)} className="absolute top-4 right-4 p-2 rounded-lg bg-[rgba(239,68,68,0.1)] text-red-400 hover:bg-[rgba(239,68,68,0.2)] transition-all">
                       <Trash2 className="w-4 h-4" />
                     </button>
+
+                    {/* Member Header with Preview & Quick Autofill */}
+                    <div className="flex items-center gap-3 pr-12 flex-wrap">
+                      {member.photo ? (
+                        <img src={member.photo} alt={member.name || "Member"} className="w-9 h-9 rounded-full object-cover border border-[rgba(255,255,255,0.15)] flex-shrink-0 shadow-md" />
+                      ) : (
+                        <div className="w-9 h-9 rounded-full bg-[rgba(124,58,237,0.2)] border border-[rgba(124,58,237,0.3)] flex items-center justify-center text-[#A855F7] font-bold text-xs flex-shrink-0">
+                          {member.name?.charAt(0) || idx + 1}
+                        </div>
+                      )}
+                      <div>
+                        <span className="text-xs font-bold text-white block">{member.name || `Member #${idx + 1}`}</span>
+                        <span className="text-[10px] text-[#94A3B8]">{member.role || "Role unspecified"}</span>
+                      </div>
+
+                      {teamProfiles.length > 0 && (
+                        <div className="ml-auto flex items-center gap-1.5">
+                          <label className="text-[10px] text-[#64748B]">Autofill:</label>
+                          <select
+                            onChange={(e) => {
+                              const selected = teamProfiles.find(p => String(p.id) === e.target.value);
+                              if (selected) {
+                                handleArrayUpdate('team', idx, {
+                                  name: selected.name,
+                                  role: selected.role || '',
+                                  photo: selected.photo || '',
+                                  github: selected.github || '',
+                                  linkedin: selected.linkedin || '',
+                                  instagram: selected.instagram || '',
+                                  email: selected.email || '',
+                                });
+                                showToast(`Filled details from ${selected.name}!`, "success");
+                              }
+                            }}
+                            defaultValue=""
+                            className="text-[11px] px-2 py-1 rounded-lg bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] text-[#94A3B8] focus:text-white cursor-pointer"
+                          >
+                            <option value="" disabled>Choose profile...</option>
+                            {teamProfiles.map(p => (
+                              <option key={p.id} value={p.id} className="bg-[#0f172a] text-white">{p.name} ({p.role || "Member"})</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                    </div>
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pr-12">
                       <input type="text" value={member.name} onChange={(e) => handleArrayUpdate('team', idx, { ...member, name: e.target.value })} placeholder="Name *" className="w-full px-3 py-2 rounded-lg bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] text-white text-sm" />
@@ -1120,6 +1301,746 @@ function ProjectsTab({ showToast }) {
           </div>
         )}
       </SectionCard>
+    </div>
+  );
+}
+
+function TeamProfilesTab({ showToast }) {
+  const { teamProfiles = [], setTeamProfiles, add, remove, edit, projects = [], setProjects } = useData();
+
+  const blank = {
+    name: "",
+    role: "",
+    email: "",
+    photo: "",
+    github: "",
+    linkedin: "",
+    instagram: "",
+    twitter: "",
+    website: "",
+    bio: "",
+    skills: "",
+  };
+
+  const [form, setForm] = useState(blank);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [search, setSearch] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [assignMember, setAssignMember] = useState(null);
+  const [selectedProjectId, setSelectedProjectId] = useState("");
+
+  const onChange = (e) => setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
+
+  // Filter profiles based on search
+  const filteredProfiles = teamProfiles.filter((p) => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return (
+      p.name?.toLowerCase().includes(q) ||
+      p.role?.toLowerCase().includes(q) ||
+      p.email?.toLowerCase().includes(q) ||
+      p.skills?.toLowerCase().includes(q)
+    );
+  });
+
+  // Calculate project occurrences
+  const getAssignedProjects = (name) => {
+    if (!name) return [];
+    const target = name.trim().toLowerCase();
+    return projects.filter((proj) =>
+      Array.isArray(proj.team) && proj.team.some((m) => m.name?.trim().toLowerCase() === target)
+    );
+  };
+
+  const handleOpenAdd = () => {
+    setForm(blank);
+    setEditingId(null);
+    setModalOpen(true);
+  };
+
+  const handleEdit = (p) => {
+    setForm({
+      name: p.name || "",
+      role: p.role || "",
+      email: p.email || "",
+      photo: p.photo || "",
+      github: p.github || "",
+      linkedin: p.linkedin || "",
+      instagram: p.instagram || "",
+      twitter: p.twitter || "",
+      website: p.website || "",
+      bio: p.bio || "",
+      skills: p.skills || "",
+    });
+    setEditingId(p.id);
+    setModalOpen(true);
+  };
+
+  const handleDelete = async (p) => {
+    if (!window.confirm(`Are you sure you want to delete profile for "${p.name}"?`)) return;
+    try {
+      await remove(teamProfiles, setTeamProfiles, p.id, "team-profiles");
+      showToast("Team profile removed successfully!", "success");
+    } catch (err) {
+      console.error(err);
+      showToast("Failed to remove profile", "error");
+    }
+  };
+
+  const handleSave = async (e) => {
+    if (e) e.preventDefault();
+    if (!form.name || !form.name.trim()) {
+      showToast("Member Name is required!", "error");
+      return;
+    }
+    setSaving(true);
+    try {
+      const payload = {
+        name: form.name.trim(),
+        role: form.role ? form.role.trim() : "",
+        email: form.email ? form.email.trim() : "",
+        photo: form.photo ? form.photo.trim() : "",
+        github: form.github ? form.github.trim() : "",
+        linkedin: form.linkedin ? form.linkedin.trim() : "",
+        instagram: form.instagram ? form.instagram.trim() : "",
+        twitter: form.twitter ? form.twitter.trim() : "",
+        website: form.website ? form.website.trim() : "",
+        bio: form.bio ? form.bio.trim() : "",
+        skills: form.skills ? form.skills.trim() : "",
+      };
+
+      if (editingId) {
+        await edit(teamProfiles, setTeamProfiles, editingId, payload, "team-profiles");
+        showToast(`Updated profile for ${payload.name}!`, "success");
+      } else {
+        await add(teamProfiles, setTeamProfiles, payload, "team-profiles");
+        showToast(`Created profile for ${payload.name}!`, "success");
+      }
+      setForm(blank);
+      setEditingId(null);
+      setModalOpen(false);
+    } catch (err) {
+      console.error(err);
+      showToast(err.message || "Failed to save profile", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Quick Assign member to a project
+  const handleAssignToProject = async () => {
+    if (!assignMember || !selectedProjectId) {
+      showToast("Please select a project!", "error");
+      return;
+    }
+    const targetProject = projects.find((p) => String(p.id) === String(selectedProjectId));
+    if (!targetProject) return;
+
+    const currentTeam = Array.isArray(targetProject.team) ? [...targetProject.team] : [];
+    const isAlreadyMember = currentTeam.some(
+      (m) => m.name?.trim().toLowerCase() === assignMember.name.trim().toLowerCase()
+    );
+
+    if (isAlreadyMember) {
+      showToast(`${assignMember.name} is already a member of "${targetProject.title}"!`, "warning");
+      return;
+    }
+
+    const updatedTeam = [
+      ...currentTeam,
+      {
+        name: assignMember.name,
+        role: assignMember.role || "",
+        photo: assignMember.photo || "",
+        github: assignMember.github || "",
+        linkedin: assignMember.linkedin || "",
+        instagram: assignMember.instagram || "",
+        email: assignMember.email || "",
+      },
+    ];
+
+    try {
+      await edit(projects, setProjects, targetProject.id, { ...targetProject, team: updatedTeam }, "projects");
+      showToast(`Added ${assignMember.name} to "${targetProject.title}"!`, "success");
+      setAssignMember(null);
+      setSelectedProjectId("");
+    } catch (err) {
+      console.error(err);
+      showToast("Failed to assign member to project", "error");
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* ── Top Overview Banner ─────────────────────────────────── */}
+      <div className="relative overflow-hidden rounded-2xl border border-[rgba(255,255,255,0.08)] bg-gradient-to-r from-[rgba(124,58,237,0.12)] via-[rgba(37,99,235,0.08)] to-[rgba(16,185,129,0.08)] p-6 backdrop-blur-xl">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#7C3AED] via-[#3B82F6] to-[#10B981] flex items-center justify-center shadow-lg shadow-purple-500/25 flex-shrink-0">
+              <Users className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-xl font-space font-bold text-white">Team Profiles Directory</h2>
+                <span className="px-2.5 py-0.5 rounded-full bg-[rgba(124,58,237,0.25)] text-[#C084FC] text-xs font-bold border border-[rgba(124,58,237,0.4)]">
+                  {teamProfiles.length} {teamProfiles.length === 1 ? "Profile" : "Profiles"}
+                </span>
+              </div>
+              <p className="text-xs text-[#94A3B8] mt-1 max-w-xl">
+                Create reusable profiles with roles, avatars, and social links. You can attach any profile to your portfolio projects with a single click.
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={handleOpenAdd}
+            className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#2563EB] hover:from-[#6D28D9] hover:to-[#1D4ED8] text-white text-sm font-bold shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all flex-shrink-0"
+          >
+            <UserPlus className="w-4 h-4" />
+            <span>Add Team Profile</span>
+          </button>
+        </div>
+
+        {/* Search Bar & Quick Stats */}
+        <div className="mt-6 pt-5 border-t border-[rgba(255,255,255,0.06)] flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="relative w-full sm:w-80">
+            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[#64748B]" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by name, role, email, skill..."
+              className="w-full pl-10 pr-4 py-2 rounded-xl bg-[rgba(0,0,0,0.3)] border border-[rgba(255,255,255,0.08)] text-white text-xs placeholder:text-[#475569] focus:outline-none focus:border-[#7C3AED] transition-all"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748B] hover:text-white"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3 text-xs text-[#94A3B8] w-full sm:w-auto justify-end">
+            <span>Showing <strong className="text-white">{filteredProfiles.length}</strong> of {teamProfiles.length}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Profiles Grid ────────────────────────────────────────── */}
+      {filteredProfiles.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.02)] p-12 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-[rgba(124,58,237,0.1)] border border-[rgba(124,58,237,0.2)] flex items-center justify-center mx-auto mb-4">
+            <Users className="w-8 h-8 text-[#A855F7]" />
+          </div>
+          <h3 className="text-base font-space font-bold text-white mb-1">
+            {search ? "No matching profiles found" : "No Team Profiles Created Yet"}
+          </h3>
+          <p className="text-xs text-[#64748B] max-w-sm mx-auto mb-6">
+            {search
+              ? `No profile matches your search query "${search}". Try clearing the search or checking spelling.`
+              : "Start by adding team members, collaborators, designers, or co-developers. Once added here, you can seamlessly attach them to any of your projects."}
+          </p>
+          {search ? (
+            <button
+              onClick={() => setSearch("")}
+              className="px-4 py-2 rounded-xl bg-[rgba(255,255,255,0.06)] text-white text-xs font-semibold hover:bg-[rgba(255,255,255,0.1)] transition-all"
+            >
+              Clear Search
+            </button>
+          ) : (
+            <button
+              onClick={handleOpenAdd}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#2563EB] text-white text-xs font-bold hover:opacity-90 shadow-lg shadow-purple-500/20 transition-all"
+            >
+              <Plus className="w-4 h-4" /> Add First Team Profile
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {filteredProfiles.map((p) => {
+            const assigned = getAssignedProjects(p.name);
+            const skillsList = p.skills
+              ? p.skills.split(",").map((s) => s.trim()).filter(Boolean)
+              : [];
+
+            return (
+              <motion.div
+                key={p.id}
+                layout
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.98 }}
+                className="group flex flex-col justify-between rounded-2xl border border-[rgba(255,255,255,0.07)] bg-[rgba(15,23,42,0.6)] hover:border-[rgba(124,58,237,0.4)] hover:bg-[rgba(15,23,42,0.85)] p-5 backdrop-blur-xl transition-all duration-300 shadow-lg hover:shadow-purple-500/10"
+              >
+                <div>
+                  {/* Top Bar: Avatar, Info, Actions */}
+                  <div className="flex items-start justify-between gap-3 mb-4">
+                    <div className="flex items-center gap-3.5 min-w-0">
+                      {p.photo ? (
+                        <div className="relative">
+                          <img
+                            src={p.photo}
+                            alt={p.name}
+                            className="w-13 h-13 rounded-2xl object-cover object-top border-2 border-[rgba(124,58,237,0.3)] group-hover:border-[#A855F7] transition-all shadow-md flex-shrink-0"
+                            style={{ width: "52px", height: "52px" }}
+                          />
+                          <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-[#10B981] border-2 border-[#0B0F19]" />
+                        </div>
+                      ) : (
+                        <div
+                          className="w-13 h-13 rounded-2xl bg-gradient-to-br from-[#7C3AED] via-[#3B82F6] to-[#10B981] flex items-center justify-center text-white font-space font-bold text-lg shadow-md flex-shrink-0"
+                          style={{ width: "52px", height: "52px" }}
+                        >
+                          {p.name?.charAt(0)?.toUpperCase() || "?"}
+                        </div>
+                      )}
+
+                      <div className="min-w-0">
+                        <h3 className="font-space font-bold text-white text-base truncate group-hover:text-[#C084FC] transition-colors">
+                          {p.name}
+                        </h3>
+                        <span className="inline-block mt-0.5 px-2 py-0.5 rounded-md bg-[rgba(124,58,237,0.15)] border border-[rgba(124,58,237,0.3)] text-[#C084FC] text-[11px] font-semibold truncate max-w-[180px]">
+                          {p.role || "Team Member"}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      <button
+                        onClick={() => handleEdit(p)}
+                        className="p-2 rounded-lg bg-[rgba(59,130,246,0.1)] border border-[rgba(59,130,246,0.2)] text-blue-400 hover:bg-[rgba(59,130,246,0.2)] hover:text-blue-300 transition-all"
+                        title="Edit profile"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(p)}
+                        className="p-2 rounded-lg bg-[rgba(239,68,68,0.1)] border border-[rgba(239,68,68,0.2)] text-red-400 hover:bg-[rgba(239,68,68,0.2)] hover:text-red-300 transition-all"
+                        title="Delete profile"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Bio */}
+                  {p.bio && (
+                    <p className="text-xs text-[#94A3B8] italic line-clamp-2 mb-3 bg-[rgba(255,255,255,0.02)] p-2.5 rounded-xl border border-[rgba(255,255,255,0.04)]">
+                      "{p.bio}"
+                    </p>
+                  )}
+
+                  {/* Skills tags */}
+                  {skillsList.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mb-3">
+                      {skillsList.slice(0, 4).map((s, idx) => (
+                        <span
+                          key={idx}
+                          className="px-2 py-0.5 rounded-md bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] text-[10px] text-[#94A3B8] font-medium"
+                        >
+                          {s}
+                        </span>
+                      ))}
+                      {skillsList.length > 4 && (
+                        <span className="px-1.5 py-0.5 rounded-md bg-[rgba(255,255,255,0.04)] text-[10px] text-[#64748B]">
+                          +{skillsList.length - 4}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Social & Contact links */}
+                  <div className="flex items-center gap-2 py-2.5 border-y border-[rgba(255,255,255,0.05)] text-[#64748B] flex-wrap">
+                    {p.email && (
+                      <a
+                        href={`mailto:${p.email}`}
+                        title={p.email}
+                        className="p-1.5 rounded-lg bg-[rgba(255,255,255,0.03)] hover:bg-[rgba(56,189,248,0.15)] hover:text-[#38BDF8] transition-all"
+                      >
+                        <Mail className="w-3.5 h-3.5" />
+                      </a>
+                    )}
+                    {p.github && (
+                      <a
+                        href={p.github}
+                        target="_blank"
+                        rel="noreferrer"
+                        title="GitHub"
+                        className="p-1.5 rounded-lg bg-[rgba(255,255,255,0.03)] hover:bg-[rgba(255,255,255,0.15)] hover:text-white transition-all"
+                      >
+                        <GithubIcon className="w-3.5 h-3.5" />
+                      </a>
+                    )}
+                    {p.linkedin && (
+                      <a
+                        href={p.linkedin}
+                        target="_blank"
+                        rel="noreferrer"
+                        title="LinkedIn"
+                        className="p-1.5 rounded-lg bg-[rgba(255,255,255,0.03)] hover:bg-[rgba(10,102,194,0.15)] hover:text-[#0A66C2] transition-all"
+                      >
+                        <LinkedinIcon className="w-3.5 h-3.5" />
+                      </a>
+                    )}
+                    {p.instagram && (
+                      <a
+                        href={p.instagram}
+                        target="_blank"
+                        rel="noreferrer"
+                        title="Instagram"
+                        className="p-1.5 rounded-lg bg-[rgba(255,255,255,0.03)] hover:bg-[rgba(225,48,108,0.15)] hover:text-[#E1306C] transition-all"
+                      >
+                        <InstagramIcon className="w-3.5 h-3.5" />
+                      </a>
+                    )}
+                    {p.twitter && (
+                      <a
+                        href={p.twitter}
+                        target="_blank"
+                        rel="noreferrer"
+                        title="X / Twitter"
+                        className="p-1.5 rounded-lg bg-[rgba(255,255,255,0.03)] hover:bg-[rgba(255,255,255,0.15)] hover:text-white transition-all"
+                      >
+                        <XIcon className="w-3.5 h-3.5" />
+                      </a>
+                    )}
+                    {p.website && (
+                      <a
+                        href={p.website}
+                        target="_blank"
+                        rel="noreferrer"
+                        title="Website / Portfolio"
+                        className="p-1.5 rounded-lg bg-[rgba(255,255,255,0.03)] hover:bg-[rgba(16,185,129,0.15)] hover:text-[#10B981] transition-all"
+                      >
+                        <Globe className="w-3.5 h-3.5" />
+                      </a>
+                    )}
+                    {!p.email && !p.github && !p.linkedin && !p.instagram && !p.twitter && !p.website && (
+                      <span className="text-[11px] text-[#64748B] italic">No social links added</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Footer: Projects list & Quick Assign button */}
+                <div className="mt-4 pt-3 border-t border-[rgba(255,255,255,0.05)] flex items-center justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] uppercase font-bold tracking-wider text-[#64748B]">
+                      {assigned.length > 0 ? `In ${assigned.length} Project${assigned.length > 1 ? "s" : ""}` : "Not in any project"}
+                    </p>
+                    {assigned.length > 0 ? (
+                      <div className="flex gap-1 overflow-x-auto no-scrollbar mt-1">
+                        {assigned.slice(0, 2).map((proj) => (
+                          <span
+                            key={proj.id}
+                            className="text-[10px] px-2 py-0.5 rounded bg-[rgba(16,185,129,0.1)] text-[#10B981] font-medium truncate max-w-[120px]"
+                            title={proj.title}
+                          >
+                            {proj.title}
+                          </span>
+                        ))}
+                        {assigned.length > 2 && (
+                          <span className="text-[10px] px-1 py-0.5 text-[#64748B]">+{assigned.length - 2}</span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-[10px] text-[#475569] italic">Ready to assign</span>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      setAssignMember(p);
+                      setSelectedProjectId("");
+                    }}
+                    className="px-2.5 py-1.5 rounded-lg bg-[rgba(124,58,237,0.15)] hover:bg-[rgba(124,58,237,0.25)] border border-[rgba(124,58,237,0.3)] text-[#C084FC] hover:text-white text-xs font-semibold flex items-center gap-1 transition-all flex-shrink-0"
+                    title="Add to a project"
+                  >
+                    <FolderGit2 className="w-3 h-3" />
+                    <span>Assign</span>
+                  </button>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── Modal: Add / Edit Team Profile ───────────────────────── */}
+      <AnimatePresence>
+        {modalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-[#0B0F19] border border-[rgba(255,255,255,0.1)] rounded-2xl p-6 w-full max-w-2xl shadow-2xl space-y-6 my-8 max-h-[90vh] overflow-y-auto"
+              data-lenis-prevent="true"
+            >
+              {/* Modal Header */}
+              <div className="flex items-center justify-between pb-4 border-b border-[rgba(255,255,255,0.07)]">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#7C3AED] to-[#2563EB] flex items-center justify-center text-white shadow-lg shadow-purple-500/25">
+                    {editingId ? <Edit2 className="w-5 h-5" /> : <UserPlus className="w-5 h-5" />}
+                  </div>
+                  <div>
+                    <h3 className="font-space font-bold text-white text-lg">
+                      {editingId ? `Edit Profile: ${form.name}` : "Create New Team Profile"}
+                    </h3>
+                    <p className="text-xs text-[#94A3B8]">
+                      Save team member information for reuse across projects.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setModalOpen(false)}
+                  className="p-2 rounded-xl text-[#94A3B8] hover:text-white bg-[rgba(255,255,255,0.05)] hover:bg-[rgba(255,255,255,0.1)] transition-all"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Form Fields */}
+              <form onSubmit={handleSave} className="space-y-5">
+                {/* Avatar Preview & URL */}
+                <div className="p-4 rounded-xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)] space-y-3">
+                  <label className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wider block">
+                    Profile Picture / Avatar
+                  </label>
+                  <div className="flex flex-col sm:flex-row items-center gap-4">
+                    {form.photo ? (
+                      <div className="relative group">
+                        <img
+                          src={form.photo}
+                          alt="Avatar preview"
+                          className="w-16 h-16 rounded-2xl object-cover object-top border-2 border-[#7C3AED] shadow-lg flex-shrink-0"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setForm((f) => ({ ...f, photo: "" }))}
+                          className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="Remove picture"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#7C3AED]/30 to-[#2563EB]/30 border border-dashed border-[rgba(255,255,255,0.2)] flex items-center justify-center text-white/50 text-2xl font-bold flex-shrink-0">
+                        {form.name ? form.name.charAt(0).toUpperCase() : "?"}
+                      </div>
+                    )}
+
+                    <div className="flex-1 w-full flex gap-2 items-center">
+                      <input
+                        type="text"
+                        name="photo"
+                        value={form.photo}
+                        onChange={onChange}
+                        placeholder="Image URL (Cloudinary or direct web link)"
+                        className="flex-1 px-4 py-2.5 rounded-xl bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] text-white text-xs placeholder:text-[#475569] focus:outline-none focus:border-[#7C3AED]"
+                      />
+                      <CloudinaryUpload onUpload={(url) => setForm((f) => ({ ...f, photo: url }))} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Primary Info */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Field
+                    label="Full Name *"
+                    name="name"
+                    value={form.name}
+                    onChange={onChange}
+                    placeholder="e.g. Ankit Das"
+                  />
+                  <Field
+                    label="Role / Designation *"
+                    name="role"
+                    value={form.role}
+                    onChange={onChange}
+                    placeholder="e.g. Lead Full Stack Developer"
+                  />
+                  <Field
+                    label="Email Address"
+                    name="email"
+                    type="email"
+                    value={form.email}
+                    onChange={onChange}
+                    placeholder="e.g. ankit@ankit.dev"
+                  />
+                  <Field
+                    label="Portfolio / Website URL"
+                    name="website"
+                    value={form.website}
+                    onChange={onChange}
+                    placeholder="https://..."
+                  />
+                </div>
+
+                {/* Social Profiles */}
+                <div className="p-4 rounded-xl border border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)] space-y-4">
+                  <label className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wider block">
+                    Social & Platform Links
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <Field
+                      label="GitHub Profile URL"
+                      name="github"
+                      value={form.github}
+                      onChange={onChange}
+                      placeholder="https://github.com/username"
+                    />
+                    <Field
+                      label="LinkedIn Profile URL"
+                      name="linkedin"
+                      value={form.linkedin}
+                      onChange={onChange}
+                      placeholder="https://linkedin.com/in/username"
+                    />
+                    <Field
+                      label="Instagram URL"
+                      name="instagram"
+                      value={form.instagram}
+                      onChange={onChange}
+                      placeholder="https://instagram.com/username"
+                    />
+                    <Field
+                      label="Twitter / X URL"
+                      name="twitter"
+                      value={form.twitter}
+                      onChange={onChange}
+                      placeholder="https://x.com/username"
+                    />
+                  </div>
+                </div>
+
+                {/* Skills & Bio */}
+                <div className="space-y-4">
+                  <Field
+                    label="Skills & Technologies"
+                    name="skills"
+                    value={form.skills}
+                    onChange={onChange}
+                    placeholder="e.g. React, Node.js, Next.js, MySQL, Tailwind CSS (comma separated)"
+                  />
+                  <Field
+                    label="Short Bio / Note"
+                    name="bio"
+                    value={form.bio}
+                    onChange={onChange}
+                    type="textarea"
+                    placeholder="Brief background or contribution description..."
+                    rows={3}
+                  />
+                </div>
+
+                {/* Footer Buttons */}
+                <div className="flex items-center justify-end gap-3 pt-4 border-t border-[rgba(255,255,255,0.07)]">
+                  <button
+                    type="button"
+                    onClick={() => setModalOpen(false)}
+                    className="px-5 py-2.5 rounded-xl text-xs font-semibold text-[#94A3B8] hover:text-white bg-[rgba(255,255,255,0.04)] hover:bg-[rgba(255,255,255,0.08)] transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={saving}
+                    className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#2563EB] hover:from-[#6D28D9] hover:to-[#1D4ED8] text-white text-xs font-bold shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40 flex items-center gap-2 transition-all disabled:opacity-50"
+                  >
+                    {saving ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Saving...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4" />
+                        <span>{editingId ? "Update Profile" : "Save Profile"}</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Modal: Quick Assign to Project ────────────────────────── */}
+      <AnimatePresence>
+        {assignMember && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-[#0B0F19] border border-[rgba(255,255,255,0.1)] rounded-2xl p-6 w-full max-w-md shadow-2xl space-y-4"
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-[rgba(255,255,255,0.07)]">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-[rgba(16,185,129,0.2)] flex items-center justify-center text-[#10B981]">
+                    <FolderGit2 className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="font-space font-bold text-white text-sm">Assign to Project</h3>
+                    <p className="text-xs text-[#94A3B8]">Adding {assignMember.name}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setAssignMember(null)}
+                  className="p-1.5 rounded-lg text-[#94A3B8] hover:text-white"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                <label className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wider block">
+                  Select Project
+                </label>
+                <select
+                  value={selectedProjectId}
+                  onChange={(e) => setSelectedProjectId(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] text-white text-sm focus:outline-none focus:border-[#7C3AED]"
+                >
+                  <option value="" disabled className="bg-[#0f172a] text-[#94A3B8]">
+                    Choose a project...
+                  </option>
+                  {projects.map((proj) => (
+                    <option key={proj.id} value={proj.id} className="bg-[#0f172a] text-white">
+                      {proj.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[rgba(255,255,255,0.07)]">
+                <button
+                  type="button"
+                  onClick={() => setAssignMember(null)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-[#94A3B8] hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAssignToProject}
+                  disabled={!selectedProjectId}
+                  className="px-5 py-2 rounded-xl bg-gradient-to-r from-[#10B981] to-[#059669] hover:from-[#059669] hover:to-[#047857] text-white text-xs font-bold shadow-lg shadow-emerald-500/20 disabled:opacity-50 transition-all flex items-center gap-1.5"
+                >
+                  <Check className="w-3.5 h-3.5" />
+                  <span>Confirm Assignment</span>
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -4558,6 +5479,7 @@ export default function AdminPage() {
             {tab === "education"    && <EducationTab    showToast={showToast} />}
             {tab === "skills"       && <SkillsTab       showToast={showToast} />}
             {tab === "projects"     && <ProjectsTab     showToast={showToast} />}
+            {tab === "team_profiles" && <TeamProfilesTab showToast={showToast} />}
             {tab === "featured"     && <FeaturedTab     showToast={showToast} />}
             {tab === "categories"   && <CategoriesTab   showToast={showToast} />}
             {tab === "gallery"      && <GalleryTab      showToast={showToast} />}

@@ -53,6 +53,19 @@ export function DataProvider({ children }) {
   const [skills,       setSkills]          = useState([]);
   const [loadingSkills, setLoadingSkills]  = useState(true);
   const [contactLinks, setContactLinks]    = useState([]);
+  const [teamProfiles, setTeamProfiles]    = useState([]);
+  const [loadingTeamProfiles, setLoadingTeamProfiles] = useState(true);
+
+  // Fetch team profiles from MySQL backend
+  useEffect(() => {
+    fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/team-profiles`)
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) setTeamProfiles(data);
+      })
+      .catch(err => console.error("Error fetching team profiles:", err))
+      .finally(() => setLoadingTeamProfiles(false));
+  }, []);
 
   // Fetch projects from MySQL backend
   useEffect(() => {
@@ -194,6 +207,7 @@ export function DataProvider({ children }) {
     if (setList === setTestimonials) return 'testimonials';
     if (setList === setBlogPosts) return 'blog';
     if (setList === setProjects) return 'projects';
+    if (setList === setTeamProfiles) return 'team-profiles';
     return null;
   };
 
@@ -314,6 +328,8 @@ export function DataProvider({ children }) {
         skills,       setSkills,
         loadingSkills, setLoadingSkills,
         contactLinks, setContactLinks,
+        teamProfiles, setTeamProfiles,
+        loadingTeamProfiles,
         remove, add, edit,
       }}
     >

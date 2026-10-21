@@ -211,3 +211,20 @@ CREATE TABLE IF NOT EXISTS blog_posts (
     hidden TINYINT(1) DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Team Profiles table
+CREATE TABLE IF NOT EXISTS team_profiles (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    role VARCHAR(255) DEFAULT '',
+    email VARCHAR(255) DEFAULT '',
+    photo VARCHAR(500) DEFAULT '',
+    github VARCHAR(500) DEFAULT '',
+    linkedin VARCHAR(500) DEFAULT '',
+    instagram VARCHAR(500) DEFAULT '',
+    twitter VARCHAR(500) DEFAULT '',
+    website VARCHAR(500) DEFAULT '',
+    bio TEXT,
+    skills VARCHAR(500) DEFAULT '',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

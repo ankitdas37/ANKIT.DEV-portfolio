@@ -9,4 +9,8 @@ export default defineConfig({
       "@": `${import.meta.dirname}/src`,
     },
   },
+  server: {
+    port: 5173,
+    host: true,
+  },
 });
