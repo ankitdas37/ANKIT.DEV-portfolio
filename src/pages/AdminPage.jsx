@@ -147,6 +147,7 @@ function Toast({ msg, type = "success", onClose }) {
 
 function CloudinaryUpload({ onUpload, label = "Upload", multiple = false }) {
   const [uploading, setUploading] = useState(false);
+  const [statusText, setStatusText] = useState("");
 
   const handleFileChange = async (e) => {
     let files = Array.from(e.target.files);
@@ -157,12 +158,15 @@ function CloudinaryUpload({ onUpload, label = "Upload", multiple = false }) {
 
     if (!cloudName || cloudName === 'your_cloud_name_here') {
       alert("Please set your Cloudinary Cloud Name in the .env file.");
+      if (e.target) e.target.value = "";
       return;
     }
 
     setUploading(true);
+    setStatusText(files.length > 1 ? `Uploading (0/${files.length})...` : "Uploading...");
     
     try {
+      let completed = 0;
       const uploadPromises = files.map(async (originalFile) => {
         let file = originalFile;
         if (file.type.startsWith("image/")) {
@@ -188,6 +192,11 @@ function CloudinaryUpload({ onUpload, label = "Upload", multiple = false }) {
         });
         const data = await res.json();
         
+        completed += 1;
+        if (files.length > 1) {
+          setStatusText(`Uploading (${completed}/${files.length})...`);
+        }
+
         if (data.secure_url) {
           return { url: data.secure_url, name: originalFile.name };
         } else {
@@ -202,8 +211,7 @@ function CloudinaryUpload({ onUpload, label = "Upload", multiple = false }) {
         if (result.status === "fulfilled") {
           successfulUploads.push(result.value);
         } else {
-          console.error("Upload error", result.reason);
-          alert("Error uploading file: " + files[index].name + " - " + result.reason);
+          console.error("Upload error for file:", files[index].name, result.reason);
         }
       });
 
@@ -216,13 +224,15 @@ function CloudinaryUpload({ onUpload, label = "Upload", multiple = false }) {
       console.error("Batch upload error", err);
     } finally {
       setUploading(false);
+      setStatusText("");
+      if (e?.target) e.target.value = "";
     }
   };
 
   return (
-    <label className="relative flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[rgba(168,85,247,0.1)] border border-[rgba(168,85,247,0.2)] text-[#C084FC] hover:bg-[rgba(168,85,247,0.2)] transition-all cursor-pointer text-sm font-semibold">
+    <label className="relative flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-[rgba(168,85,247,0.1)] border border-[rgba(168,85,247,0.2)] text-[#C084FC] hover:bg-[rgba(168,85,247,0.2)] transition-all cursor-pointer text-sm font-semibold select-none">
       {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
-      {uploading ? "Uploading..." : label}
+      {uploading ? (statusText || "Uploading...") : label}
       <input type="file" accept="image/*,video/*" className="hidden" onChange={handleFileChange} disabled={uploading} multiple={multiple} />
     </label>
   );
@@ -674,14 +684,18 @@ function ProjectsTab({ showToast }) {
     }
     const processedTech = typeof form.tech === 'string' ? form.tech.split(",").map((t) => t.trim()).filter(Boolean) : form.tech;
     
-    // Clean up empty array items before saving
+    // Clean up empty array items before saving and normalize screenshots
+    const cleanedScreenshots = (form.screenshots || [])
+      .map(s => (typeof s === 'string' ? s : s?.url || ''))
+      .filter(s => typeof s === 'string' && s.trim());
+
     const cleanedForm = {
       ...form,
       tech: processedTech,
-      screenshots: (form.screenshots || []).filter(s => typeof s === 'string' && s.trim()),
+      screenshots: cleanedScreenshots,
       notes: (form.notes || []).filter(n => typeof n === 'string' && n.trim()),
       team: (form.team || []).filter(t => t && typeof t.name === 'string' && t.name.trim()),
-      image: form.screenshots?.[0] || form.image || "",
+      image: cleanedScreenshots[0] || form.image || "",
       logo: form.logo || "",
       hidden: form.hidden || false,
     };
@@ -701,12 +715,19 @@ function ProjectsTab({ showToast }) {
     // Detect mode: if any note contains ## headings or multi-line rich content → rich mode
     const isRich = rawNotes.some(n => n.includes('##') || n.includes('\n'));
     setNotesMode(isRich ? "rich" : "rich"); // always start in rich mode for easier editing
+
+    const loadedScreenshots = (project.screenshots?.length
+      ? project.screenshots
+      : (project.image ? [project.image] : [""]))
+      .map(s => (typeof s === 'string' ? s : s?.url || ''))
+      .filter(Boolean);
+
     setForm({
       ...blank,
       ...project,
       tech: Array.isArray(project.tech) ? project.tech.join(", ") : (project.tech || ""),
       projectType: Array.isArray(project.projectType) ? project.projectType : (project.projectType ? [project.projectType] : []),
-      screenshots: project.screenshots?.length ? project.screenshots : [project.image || ""],
+      screenshots: loadedScreenshots.length ? loadedScreenshots : [""],
       notes: rawNotes,
       team: project.team || [],
       logo: project.logo || "",
@@ -803,7 +824,38 @@ function ProjectsTab({ showToast }) {
             {/* Basic Info */}
             <div className="sm:col-span-2 grid sm:grid-cols-2 gap-4">
               <Field label="Title *"       name="title"       value={form.title}       onChange={onChange} placeholder="My Awesome App" />
-              <Field label="Color"          name="color"       value={form.color}       onChange={onChange} type="color" />
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wider">Project Accent Color</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    name="color"
+                    value={form.color || "#7C3AED"}
+                    onChange={onChange}
+                    className="w-11 h-10 p-1 rounded-xl bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.1)] cursor-pointer"
+                  />
+                  <input
+                    type="text"
+                    name="color"
+                    value={form.color || ""}
+                    onChange={onChange}
+                    placeholder="#7C3AED"
+                    className="w-28 px-3 py-2 rounded-xl bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] text-white font-mono text-sm uppercase placeholder:text-[#475569] focus:outline-none focus:border-[rgba(168,85,247,0.5)]"
+                  />
+                  <div className="flex gap-1.5 flex-wrap">
+                    {["#7C3AED", "#3B82F6", "#06B6D4", "#10B981", "#F59E0B", "#EC4899"].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setForm((f) => ({ ...f, color: preset }))}
+                        className="w-6 h-6 rounded-full border border-white/20 transition-transform hover:scale-110 active:scale-95"
+                        style={{ backgroundColor: preset }}
+                        title={preset}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
               
               <div className="flex flex-col gap-1.5 sm:col-span-2">
                 <label className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wider">Categories</label>
@@ -859,36 +911,106 @@ function ProjectsTab({ showToast }) {
             {/* Screenshots Manager */}
             <div className="sm:col-span-2 p-4 rounded-xl border border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.02)]">
               <label className="text-sm font-semibold text-white mb-3 flex items-center justify-between">
-                Screenshots
+                <span>
+                  Screenshots <span className="text-xs font-normal text-[#94A3B8]">({(form.screenshots || []).filter(s => (typeof s === 'string' ? s : s?.url || '').trim()).length} added)</span>
+                </span>
                 <div className="flex gap-2">
-                  <CloudinaryUpload label="Bulk Upload" multiple={true} onUpload={(urls) => {
-                    setForm(f => {
-                      const current = (f.screenshots || []).filter(s => s.trim());
-                      return { ...f, screenshots: [...current, ...urls] };
-                    });
-                  }} />
-                  <button onClick={() => handleArrayAdd('screenshots', '')} className="text-xs text-[#38BDF8] hover:text-[#0EA5E9] flex items-center gap-1">
-                    <Plus className="w-3 h-3" /> Add URL
+                  <CloudinaryUpload 
+                    label="Bulk Upload" 
+                    multiple={true} 
+                    onUpload={(items) => {
+                      const uploadedUrls = (Array.isArray(items) ? items : [items])
+                        .map(item => (typeof item === 'string' ? item : item?.url || ''))
+                        .filter(u => u && typeof u === 'string' && u.trim());
+
+                      if (uploadedUrls.length === 0) return;
+
+                      setForm(f => {
+                        const current = (f.screenshots || [])
+                          .map(s => (typeof s === 'string' ? s : s?.url || ''))
+                          .filter(s => s && typeof s === 'string' && s.trim());
+                        
+                        const updated = [...current, ...uploadedUrls];
+                        return { 
+                          ...f, 
+                          screenshots: updated.length ? updated : [""],
+                          image: f.image || updated[0] || ""
+                        };
+                      });
+                      if (showToast) showToast(`${uploadedUrls.length} screenshot${uploadedUrls.length > 1 ? 's' : ''} uploaded!`, "success");
+                    }} 
+                  />
+                  <button type="button" onClick={() => handleArrayAdd('screenshots', '')} className="text-xs text-[#38BDF8] hover:text-[#0EA5E9] flex items-center gap-1 font-medium px-2.5 py-1.5 rounded-lg bg-[rgba(56,189,248,0.1)] border border-[rgba(56,189,248,0.2)] transition-all">
+                    <Plus className="w-3.5 h-3.5" /> Add URL
                   </button>
                 </div>
               </label>
               <div className="space-y-3">
-                {(form.screenshots || []).map((url, idx) => (
-                  <div key={idx} className="flex items-center gap-2">
-                    {url && typeof url === 'string' && url.startsWith('http') && <img src={url} alt="" className="w-12 h-12 rounded object-cover border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.05)]" />}
-                    <div className="flex-1">
-                      <input type="text" value={url} onChange={(e) => handleArrayUpdate('screenshots', idx, e.target.value)} placeholder={`Image URL ${idx + 1}`} className="w-full px-4 py-2.5 rounded-lg bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] text-white text-sm" />
+                {(form.screenshots || []).map((rawUrl, idx) => {
+                  const url = typeof rawUrl === 'string' ? rawUrl : rawUrl?.url || '';
+                  return (
+                    <div key={idx} className="flex items-center gap-2 bg-[rgba(255,255,255,0.02)] p-2 rounded-xl border border-[rgba(255,255,255,0.05)] hover:border-[rgba(255,255,255,0.1)] transition-colors">
+                      {url && typeof url === 'string' && url.startsWith('http') ? (
+                        <img src={url} alt="" className="w-12 h-12 rounded-lg object-cover border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.05)] flex-shrink-0" />
+                      ) : (
+                        <div className="w-12 h-12 rounded-lg border border-dashed border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.02)] flex items-center justify-center text-[#64748B] flex-shrink-0 text-xs font-mono">
+                          #{idx + 1}
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <input 
+                          type="text" 
+                          value={url} 
+                          onChange={(e) => handleArrayUpdate('screenshots', idx, e.target.value)} 
+                          placeholder={`Screenshot Image URL ${idx + 1}`} 
+                          className="w-full px-4 py-2.5 rounded-lg bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] text-white text-sm focus:outline-none focus:border-[rgba(168,85,247,0.5)] transition-all" 
+                        />
+                      </div>
+                      <CloudinaryUpload onUpload={(newUrl) => {
+                        const urlStr = typeof newUrl === 'string' ? newUrl : newUrl?.url || '';
+                        if (urlStr) handleArrayUpdate('screenshots', idx, urlStr);
+                      }} />
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        {idx === 0 ? (
+                          <span className="px-2.5 py-1 rounded-md bg-[#3B82F6]/20 text-[#38BDF8] border border-[#38BDF8]/30 text-[10px] font-bold uppercase tracking-wider">
+                            Hero
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setForm(f => {
+                                const list = [...(f.screenshots || [])];
+                                const [moved] = list.splice(idx, 1);
+                                list.unshift(moved);
+                                const heroUrl = typeof moved === 'string' ? moved : moved?.url || '';
+                                return { ...f, screenshots: list, image: heroUrl || f.image };
+                              });
+                            }}
+                            className="px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-[#94A3B8] hover:text-white border border-white/10 text-[10px] font-semibold transition-all"
+                            title="Set as primary Hero screenshot"
+                          >
+                            Set Hero
+                          </button>
+                        )}
+                        <button 
+                          type="button"
+                          onClick={() => {
+                            if ((form.screenshots || []).length <= 1) {
+                              handleArrayUpdate('screenshots', 0, '');
+                            } else {
+                              handleArrayRemove('screenshots', idx);
+                            }
+                          }} 
+                          className="p-2.5 rounded-lg bg-[rgba(239,68,68,0.1)] text-red-400 hover:bg-[rgba(239,68,68,0.2)] transition-all"
+                          title="Remove screenshot"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
-                    <CloudinaryUpload onUpload={(newUrl) => handleArrayUpdate('screenshots', idx, newUrl)} />
-                    {idx === 0 ? (
-                      <div className="w-9 h-9 flex items-center justify-center text-[#64748B] text-xs">Hero</div>
-                    ) : (
-                      <button onClick={() => handleArrayRemove('screenshots', idx)} className="p-2.5 rounded-lg bg-[rgba(239,68,68,0.1)] text-red-400 hover:bg-[rgba(239,68,68,0.2)]">
-                        <X className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 

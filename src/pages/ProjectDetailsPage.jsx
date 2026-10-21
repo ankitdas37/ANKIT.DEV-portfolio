@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 import { useData } from "../context/DataContext";
 import {
@@ -529,13 +530,26 @@ export default function ProjectDetailsPage() {
     : typeof project.tech === "string"
       ? project.tech.split(",").map((t) => t.trim()).filter(Boolean)
       : [];
-  const displayImages = project?.screenshots?.length > 0
-    ? project.screenshots
-    : project?.image ? [project.image, project.image, project.image, project.image] : [];
 
-  const nextImage = () => setCurrentImageIndex((p) => (p + 1) % displayImages.length);
-  const prevImage = () => setCurrentImageIndex((p) => (p - 1 + displayImages.length) % displayImages.length);
-  const accentColor = project.color || "#3B82F6";
+  // Filter valid, non-empty screenshot strings and ensure primary image is present
+  const validScreenshots = (project?.screenshots || []).filter((s) => typeof s === "string" && s.trim());
+  const allImages = [...validScreenshots];
+  if (project?.image && typeof project.image === "string" && project.image.trim() && !allImages.includes(project.image)) {
+    allImages.unshift(project.image);
+  }
+  const displayImages = allImages;
+
+  const nextImage = () => {
+    if (displayImages.length === 0) return;
+    setCurrentImageIndex((p) => (p + 1) % displayImages.length);
+  };
+  const prevImage = () => {
+    if (displayImages.length === 0) return;
+    setCurrentImageIndex((p) => (p - 1 + displayImages.length) % displayImages.length);
+  };
+  const accentColor = project.color || "#7C3AED";
+
+  const lightboxSrc = typeof lightbox === "number" ? displayImages[lightbox] : lightbox;
 
   return (
     <main className="min-h-screen bg-[#02050D] pb-32 sm:pb-36 overflow-x-hidden w-full max-w-full">
@@ -546,14 +560,14 @@ export default function ProjectDetailsPage() {
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={() => setLightbox(null)}
-            className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4"
+            className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-md flex items-center justify-center p-4"
           >
             <motion.img
-              src={displayImages[lightbox]}
+              src={lightboxSrc}
               alt="Full view"
               initial={{ scale: 0.85, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.85, opacity: 0 }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="max-w-5xl max-h-[85vh] w-full object-contain rounded-2xl shadow-2xl"
+              className="max-w-5xl max-h-[85vh] w-full object-contain rounded-2xl shadow-2xl border border-white/10"
               onClick={(e) => e.stopPropagation()}
             />
             <button onClick={() => setLightbox(null)} className="absolute top-6 right-6 w-10 h-10 rounded-full bg-white/10 text-white flex items-center justify-center hover:bg-white/20 transition-colors text-xl font-bold">✕</button>
@@ -736,24 +750,38 @@ export default function ProjectDetailsPage() {
                     </div>
                   </div>
                   <div className="relative aspect-video bg-[#0A0F1E]">
-                    {displayImages[0] ? (
+                    {displayImages.length > 0 ? (
                       <motion.img
                         key={currentImageIndex}
-                        src={displayImages[currentImageIndex]}
+                        src={displayImages[currentImageIndex] || displayImages[0]}
                         alt="Hero screenshot"
                         initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';
+                        }}
                       />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-[#334155]">
-                        <ImageIcon className="w-16 h-16" />
+                    ) : null}
+                    <div className={`w-full h-full flex-col items-center justify-center p-6 text-center bg-gradient-to-br from-[#0a0f1e] to-[#040814] ${displayImages.length > 0 ? 'hidden' : 'flex'}`}>
+                      <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center mb-3 border"
+                        style={{ backgroundColor: `${accentColor}15`, borderColor: `${accentColor}30`, boxShadow: `0 0 25px ${accentColor}25` }}>
+                        {project.logo ? (
+                          <img src={project.logo} alt="" className="w-8 h-8 sm:w-10 sm:h-10 object-contain" />
+                        ) : (
+                          <ImageIcon className="w-7 h-7 sm:w-8 sm:h-8" style={{ color: accentColor }} />
+                        )}
                       </div>
-                    )}
+                      <span className="text-white font-space font-bold text-sm sm:text-base mb-1 line-clamp-1">{project.title}</span>
+                      <span className="text-[11px] text-[#94A3B8] font-mono">Project Preview</span>
+                    </div>
                     <div className="absolute inset-0 bg-gradient-to-t from-[rgba(0,0,0,0.3)] to-transparent pointer-events-none" />
                     {/* Zoom hint */}
-                    <div className="absolute bottom-2.5 right-2.5 sm:bottom-3 sm:right-3 px-2 py-1 rounded bg-black/50 backdrop-blur-sm text-[9px] sm:text-[10px] text-white/70 font-medium">
-                      Click to expand
-                    </div>
+                    {displayImages.length > 0 && (
+                      <div className="absolute bottom-2.5 right-2.5 sm:bottom-3 sm:right-3 px-2 py-1 rounded bg-black/50 backdrop-blur-sm text-[9px] sm:text-[10px] text-white/70 font-medium">
+                        Click to expand
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -793,12 +821,12 @@ export default function ProjectDetailsPage() {
 
             <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none [scrollbar-width:none] [-webkit-overflow-scrolling:touch] py-1.5">
               {[
-                { id: "overview", label: "Overview", icon: FileText, color: "#38BDF8" },
+                { id: "overview", label: "Overview", icon: FileText, color: accentColor },
                 { id: "screenshots", label: "Screenshots", icon: ImageIcon, color: "#10B981" },
                 { id: "tech", label: "Technology", icon: Cpu, color: "#A855F7" },
                 ...(project.notes?.length > 0 ? [{ id: "features", label: "Key Features", icon: Star, color: "#F59E0B" }] : []),
                 ...(project.team?.length > 0 ? [{ id: "team", label: "Team", icon: Users, color: "#EC4899" }] : []),
-                { id: "links", label: "Links", icon: Zap, color: "#F59E0B" },
+                { id: "links", label: "Links", icon: Zap, color: "#06B6D4" },
                 { id: "info", label: "Info", icon: Info, color: "#8B5CF6", className: "lg:hidden" },
               ].map(({ id, label, icon: Icon, color, className = "" }) => {
                 const isActive = activeTab === id;
@@ -876,48 +904,170 @@ export default function ProjectDetailsPage() {
                 {/* OVERVIEW */}
                 {activeTab === "overview" && (
                   <motion.div key="overview" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }}>
-                    <div className="relative p-5 sm:p-6 lg:p-8 rounded-2xl sm:rounded-3xl bg-[rgba(255,255,255,0.02)] backdrop-blur-xl border border-[rgba(255,255,255,0.05)] hover:border-[rgba(56,189,248,0.2)] hover:bg-[rgba(255,255,255,0.03)] hover:shadow-[0_0_30px_rgba(56,189,248,0.05)] transition-all duration-500 min-h-[200px] overflow-hidden group">
-                      
+                    <div 
+                      className="relative p-5 sm:p-6 lg:p-8 rounded-2xl sm:rounded-3xl bg-[rgba(255,255,255,0.02)] backdrop-blur-xl border transition-all duration-500 min-h-[200px] overflow-hidden group"
+                      style={{
+                        borderColor: `${accentColor}25`,
+                        boxShadow: `0 10px 40px -10px ${accentColor}12`
+                      }}
+                    >
                       {/* Active glow accent */}
-                      <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-[rgba(56,189,248,0.5)] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                      <div 
+                        className="absolute top-0 left-0 w-full h-px opacity-70 group-hover:opacity-100 transition-opacity duration-500"
+                        style={{ background: `linear-gradient(to right, transparent, ${accentColor}, transparent)` }}
+                      />
                       
                       <div className="w-full">
                         {isLoadingReadme ? (
                           <div className="flex flex-col items-center justify-center py-16 gap-4">
-                            <div className="w-8 h-8 rounded-full border-2 border-[#38BDF8] border-t-transparent animate-spin"></div>
+                            <div className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: accentColor, borderTopColor: 'transparent' }}></div>
                             <p className="text-sm text-[#64748B] animate-pulse">Fetching README from GitHub...</p>
                           </div>
                         ) : (
                           <ReactMarkdown 
                             remarkPlugins={[remarkGfm]}
+                            rehypePlugins={[rehypeRaw]}
                             components={{
                               table: ({node, ...props}) => (
-                                <div className="w-full overflow-x-auto my-6 border border-[rgba(255,255,255,0.05)] rounded-xl bg-[rgba(255,255,255,0.01)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                                <div 
+                                  className="w-full overflow-x-auto my-6 border rounded-xl bg-[rgba(255,255,255,0.01)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                                  style={{ borderColor: `${accentColor}30`, boxShadow: `0 4px 25px -5px ${accentColor}12` }}
+                                >
                                   <table className="w-full text-sm text-left border-collapse" {...props} />
                                 </div>
                               ),
-                              th: ({node, ...props}) => <th className="p-4 bg-[rgba(255,255,255,0.04)] text-white font-bold border-b border-[rgba(255,255,255,0.1)] whitespace-nowrap" {...props} />,
-                              td: ({node, ...props}) => <td className="p-4 border-b border-[rgba(255,255,255,0.05)] text-[#94A3B8] group-hover:bg-[rgba(255,255,255,0.02)] transition-colors whitespace-nowrap" {...props} />,
-                              tr: ({node, ...props}) => <tr className="group" {...props} />,
-                              a: ({node, ...props}) => <a className="text-[#38BDF8] hover:text-white underline transition-colors" {...props} />,
-                              ul: ({node, ...props}) => <ul className="bg-[rgba(255,255,255,0.01)] border border-[rgba(255,255,255,0.05)] rounded-2xl p-4 sm:p-5 pl-8 sm:pl-10 mb-6 list-disc marker:text-[#38BDF8] space-y-2" {...props} />,
-                              ol: ({node, ...props}) => <ol className="bg-[rgba(255,255,255,0.01)] border border-[rgba(255,255,255,0.05)] rounded-2xl p-4 sm:p-5 pl-8 sm:pl-10 mb-6 list-decimal marker:text-[#38BDF8] space-y-2" {...props} />,
-                              li: ({node, ...props}) => <li className="text-white font-medium text-[15px] leading-relaxed" {...props} />,
-                              blockquote: ({node, ...props}) => <blockquote className="border-l-4 border-[#38BDF8] bg-[rgba(56,189,248,0.05)] py-4 px-5 sm:px-6 rounded-r-xl text-[#CBD5E1] my-6 shadow-[inset_0_0_20px_rgba(56,189,248,0.03)] not-italic" {...props} />,
-                              h1: ({node, ...props}) => <h1 className="text-2xl sm:text-3xl font-bold font-space text-transparent bg-clip-text bg-gradient-to-r from-white to-[#94A3B8] mb-6 mt-8 tracking-tight" {...props} />,
-                              h2: ({node, ...props}) => <h2 className="text-xl sm:text-2xl font-bold font-space text-transparent bg-clip-text bg-gradient-to-r from-white to-[#94A3B8] mb-5 mt-8 tracking-tight" {...props} />,
-                              h3: ({node, ...props}) => <h3 className="text-lg sm:text-xl font-bold font-space text-white mb-4 mt-6" {...props} />,
+                              th: ({node, ...props}) => (
+                                <th 
+                                  className="p-3.5 sm:p-4 text-white font-bold border-b whitespace-nowrap text-xs sm:text-sm tracking-wide"
+                                  style={{ backgroundColor: `${accentColor}18`, borderColor: `${accentColor}35` }} 
+                                  {...props} 
+                                />
+                              ),
+                              td: ({node, ...props}) => (
+                                <td 
+                                  className="p-3 sm:p-4 border-b border-[rgba(255,255,255,0.05)] text-[#CBD5E1] group-hover:bg-[rgba(255,255,255,0.02)] transition-colors whitespace-nowrap text-xs sm:text-sm" 
+                                  {...props} 
+                                />
+                              ),
+                              tr: ({node, ...props}) => <tr className="group hover:bg-[rgba(255,255,255,0.02)] transition-colors" {...props} />,
+                              a: ({node, ...props}) => (
+                                <a 
+                                  className="font-semibold underline decoration-2 underline-offset-4 hover:brightness-125 transition-all"
+                                  style={{ color: accentColor }}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  {...props} 
+                                />
+                              ),
+                              ul: ({node, ...props}) => (
+                                <ul 
+                                  className="bg-[rgba(255,255,255,0.015)] border rounded-2xl p-4 sm:p-5 pl-7 sm:pl-9 mb-6 list-disc space-y-2.5" 
+                                  style={{ borderColor: `${accentColor}25` }}
+                                  {...props} 
+                                />
+                              ),
+                              ol: ({node, ...props}) => (
+                                <ol 
+                                  className="bg-[rgba(255,255,255,0.015)] border rounded-2xl p-4 sm:p-5 pl-7 sm:pl-9 mb-6 list-decimal space-y-2.5" 
+                                  style={{ borderColor: `${accentColor}25` }}
+                                  {...props} 
+                                />
+                              ),
+                              li: ({node, ...props}) => <li className="text-[#E2E8F0] font-normal text-[14px] sm:text-[15px] leading-relaxed marker:font-bold" {...props} />,
+                              strong: ({node, ...props}) => <strong className="font-bold text-white tracking-wide" {...props} />,
+                              blockquote: ({node, children, ...props}) => {
+                                const text = String(node?.children?.[0]?.children?.[0]?.value || "");
+                                const isWarning = text.includes("⚠️") || text.toLowerCase().includes("disclaimer") || text.toLowerCase().includes("warning");
+                                if (isWarning) {
+                                  return (
+                                    <blockquote 
+                                      className="border-l-4 border-amber-400 bg-[rgba(245,158,11,0.08)] py-4 px-5 sm:px-6 rounded-r-2xl text-amber-100 my-6 shadow-[inset_0_0_20px_rgba(245,158,11,0.05)] not-italic font-medium border"
+                                      style={{ borderColor: "rgba(245, 158, 11, 0.4)", borderLeftWidth: 4 }}
+                                      {...props}
+                                    >
+                                      {children}
+                                    </blockquote>
+                                  );
+                                }
+                                return (
+                                  <blockquote 
+                                    className="border-l-4 py-4 px-5 sm:px-6 rounded-r-2xl text-[#E2E8F0] my-6 not-italic"
+                                    style={{ 
+                                      borderColor: accentColor, 
+                                      backgroundColor: `${accentColor}10`,
+                                      boxShadow: `inset 0 0 25px ${accentColor}08`
+                                    }}
+                                    {...props}
+                                  >
+                                    {children}
+                                  </blockquote>
+                                );
+                              },
+                              h1: ({node, ...props}) => (
+                                <h1 
+                                  className="text-2xl sm:text-3xl font-extrabold font-space text-white mb-6 mt-8 tracking-tight pb-3 border-b flex items-center gap-2"
+                                  style={{ borderBottomColor: `${accentColor}35` }}
+                                  {...props} 
+                                />
+                              ),
+                              h2: ({node, children, ...props}) => (
+                                <h2 
+                                  className="text-xl sm:text-2xl font-bold font-space text-white mb-5 mt-8 tracking-tight flex items-center gap-2.5"
+                                  {...props}
+                                >
+                                  <span className="w-2 h-6 rounded-full inline-block flex-shrink-0" style={{ backgroundColor: accentColor }} />
+                                  <span>{children}</span>
+                                </h2>
+                              ),
+                              h3: ({node, ...props}) => (
+                                <h3 
+                                  className="text-lg sm:text-xl font-bold font-space text-white mb-3 mt-6 flex items-center gap-2"
+                                  {...props} 
+                                />
+                              ),
                               p: ({node, ...props}) => <p className="text-[#94A3B8] leading-relaxed mb-4 text-[15px] sm:text-base break-words" {...props} />,
-                              pre: ({node, ...props}) => <pre className="bg-[#0f111a] border border-[rgba(255,255,255,0.1)] rounded-xl p-4 sm:p-5 overflow-x-auto shadow-xl mb-6 [scrollbar-width:thin]" {...props} />,
+                              pre: ({node, ...props}) => <pre className="bg-[#0b0f19] border border-[rgba(255,255,255,0.1)] rounded-xl p-4 sm:p-5 overflow-x-auto shadow-2xl mb-6 [scrollbar-width:thin]" {...props} />,
                               code: ({node, inline, className, children, ...props}) => {
-                                const match = /language-(\w+)/.exec(className || '')
                                 return inline ? (
-                                  <code className="text-[#A855F7] bg-[rgba(168,85,247,0.08)] px-1.5 py-0.5 rounded-md font-mono text-[13px] font-semibold" {...props}>{children}</code>
+                                  <code 
+                                    className="px-2 py-0.5 rounded-md font-mono text-[13px] font-semibold border"
+                                    style={{ 
+                                      color: accentColor, 
+                                      backgroundColor: `${accentColor}15`,
+                                      borderColor: `${accentColor}30`
+                                    }}
+                                    {...props}
+                                  >
+                                    {children}
+                                  </code>
                                 ) : (
                                   <code className="text-[#E2E8F0] font-mono text-[13px] block" {...props}>{children}</code>
-                                )
+                                );
                               },
-                              img: ({node, ...props}) => <img className="rounded-xl border border-[rgba(255,255,255,0.1)] max-w-full h-auto my-6" {...props} />
+                              img: ({node, ...props}) => (
+                                <div 
+                                  className="my-6 rounded-2xl overflow-hidden border bg-[rgba(0,0,0,0.3)] shadow-2xl group cursor-zoom-in"
+                                  style={{ borderColor: `${accentColor}30` }}
+                                  onClick={() => {
+                                    if (props.src) {
+                                      setLightbox(props.src);
+                                    }
+                                  }}
+                                >
+                                  <img 
+                                    className="w-full h-auto max-h-[550px] object-contain mx-auto group-hover:scale-[1.01] transition-transform duration-300" 
+                                    onError={(e) => {
+                                      e.target.style.display = 'none';
+                                      if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';
+                                    }}
+                                    {...props} 
+                                  />
+                                  <div className="hidden py-8 flex-col items-center justify-center text-[#64748B] text-xs">
+                                    <ImageIcon className="w-8 h-8 mb-2 opacity-50" />
+                                    <span>Image preview unavailable</span>
+                                  </div>
+                                </div>
+                              )
                             }}
                           >
                             {project.architecture || project.description || githubReadme || "*No overview provided.*"}
@@ -1003,8 +1153,10 @@ export default function ProjectDetailsPage() {
                           <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2 sm:gap-3">
                             {displayImages.map((img, idx) => (
                               <div key={idx} onClick={() => setCurrentImageIndex(idx)}
-                                className={`aspect-video rounded-xl overflow-hidden border cursor-pointer transition-all ${idx === currentImageIndex ? "border-[#38BDF8] shadow-[0_0_15px_rgba(56,189,248,0.4)] scale-[1.05] z-10 relative" : "border-[rgba(255,255,255,0.06)] opacity-50 hover:opacity-90 hover:scale-105"
-                                  }`}>
+                                className={`aspect-video rounded-xl overflow-hidden border cursor-pointer transition-all ${idx === currentImageIndex ? "scale-[1.05] z-10 relative" : "border-[rgba(255,255,255,0.06)] opacity-50 hover:opacity-90 hover:scale-105"
+                                  }`}
+                                style={idx === currentImageIndex ? { borderColor: accentColor, boxShadow: `0 0 15px ${accentColor}60` } : undefined}
+                              >
                                 <img src={img} alt={`Screenshot ${idx + 1}`} className="w-full h-full object-cover" />
                               </div>
                             ))}

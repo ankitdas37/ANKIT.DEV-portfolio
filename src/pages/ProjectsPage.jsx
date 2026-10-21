@@ -243,17 +243,18 @@ export default function ProjectsPage() {
                 exit={{ opacity: 0, scale: 0.9 }}
                 transition={{ duration: 0.4 }}
                 onClick={() => navigate(`/project/${project.id}`)}
-                className="group relative glass rounded-2xl overflow-hidden border border-[rgba(37,99,235,0.15)] bg-[rgba(7,17,31,0.6)] flex flex-col hover:border-[rgba(37,99,235,0.4)] transition-all duration-500 cursor-pointer w-full self-stretch"
+                className="group relative glass rounded-2xl overflow-hidden border bg-[rgba(7,17,31,0.6)] flex flex-col transition-all duration-500 cursor-pointer w-full self-stretch"
                 style={{
+                  borderColor: `${project.color || '#2563EB'}25`,
                   boxShadow: `0 10px 40px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(255,255,255,0.02)`,
                 }}
                 whileHover={{
                   y: -5,
-                  boxShadow: `0 20px 40px rgba(0,0,0,0.6), 0 0 40px ${project.color}30, inset 0 0 0 1px ${project.color}50`,
+                  boxShadow: `0 20px 40px rgba(0,0,0,0.6), 0 0 35px ${project.color || '#7C3AED'}30, inset 0 0 0 1px ${project.color || '#7C3AED'}40`,
                 }}
               >
                 {/* Glow effect matching project color */}
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" style={{ background: `radial-gradient(circle at 50% 0%, ${project.color}15, transparent 70%)` }} />
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" style={{ background: `radial-gradient(circle at 50% 0%, ${project.color || '#7C3AED'}15, transparent 70%)` }} />
 
                 {/* Number & Badge */}
                 <div className="flex justify-between items-center p-3 sm:p-5 pb-2 sm:pb-3">
@@ -283,15 +284,29 @@ export default function ProjectsPage() {
                   </p>
 
                   {/* Image container styled like a laptop/screen */}
-                  <div className="relative w-full aspect-video rounded-md sm:rounded-lg overflow-hidden border border-[rgba(255,255,255,0.1)] mb-3 sm:mb-5 shadow-[0_5px_15px_rgba(0,0,0,0.5)] mt-auto">
+                  <div className="relative w-full aspect-video rounded-md sm:rounded-lg overflow-hidden border border-[rgba(255,255,255,0.1)] mb-3 sm:mb-5 shadow-[0_5px_15px_rgba(0,0,0,0.5)] mt-auto bg-[#0A0F1E]">
                     {/* Glowing platform under image */}
-                    <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-[80%] h-4 blur-xl transition-all duration-500 opacity-50 group-hover:opacity-100" style={{ backgroundColor: project.color }} />
-                    <img
-                      src={project.image}
-                      alt={project.title}
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[rgba(0,0,0,0.8)] via-transparent to-transparent opacity-60" />
+                    <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-[80%] h-4 blur-xl transition-all duration-500 opacity-50 group-hover:opacity-100" style={{ backgroundColor: project.color || '#7C3AED' }} />
+                    {project.image ? (
+                      <img
+                        src={project.image}
+                        alt={project.title}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';
+                        }}
+                      />
+                    ) : null}
+                    <div className={`w-full h-full flex-col items-center justify-center p-4 text-center bg-gradient-to-br from-[#0c1427] via-[#090d1a] to-[#050811] ${project.image ? 'hidden' : 'flex'}`}>
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-2 border"
+                        style={{ backgroundColor: `${project.color || '#7C3AED'}20`, borderColor: `${project.color || '#7C3AED'}40` }}>
+                        <FolderGit2 className="w-5 h-5" style={{ color: project.color || '#7C3AED' }} />
+                      </div>
+                      <span className="text-white text-xs font-space font-bold line-clamp-1">{project.title}</span>
+                      <span className="text-[10px] text-[#64748B] font-mono mt-0.5">Project Preview</span>
+                    </div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-[rgba(0,0,0,0.8)] via-transparent to-transparent opacity-60 pointer-events-none" />
 
                     {/* Tech icons overlay */}
                     <div className="absolute bottom-2 left-2 right-2 flex flex-wrap gap-1 sm:gap-1.5">
@@ -324,7 +339,11 @@ export default function ProjectsPage() {
                         toast("Live Demo coming soon!", { icon: '🚀' });
                       }
                     }} 
-                    className="flex-1 text-center py-1.5 sm:py-2 rounded bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-[0.65rem] sm:text-xs font-medium transition-colors flex items-center justify-center gap-1 shadow-[0_0_10px_rgba(124,58,237,0.3)] hover:shadow-[0_0_15px_rgba(124,58,237,0.5)]">
+                    className="flex-1 text-center py-1.5 sm:py-2 rounded text-white text-[0.65rem] sm:text-xs font-medium transition-all flex items-center justify-center gap-1 hover:brightness-110"
+                    style={{
+                      backgroundColor: project.color || '#7C3AED',
+                      boxShadow: `0 0 12px ${project.color || '#7C3AED'}40`
+                    }}>
                     Live Demo <ChevronRight className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                   </a>
                   <a 
