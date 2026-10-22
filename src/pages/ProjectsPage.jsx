@@ -17,8 +17,10 @@ export default function ProjectsPage() {
     setCurrentPage(1);
   }, [activeCategory, searchQuery]);
 
-  // Only show visible (non-hidden) projects on the public page
-  const visibleProjects = projects.filter(p => !p.hidden);
+  // Only show visible (non-hidden) projects on the public page, sorted by admin order
+  const visibleProjects = projects
+    .filter(p => !p.hidden)
+    .sort((a, b) => (a.project_order || 0) - (b.project_order || 0));
 
   // Build dynamic category list: "All" + categories from DB
   const filterTabs = ["All", ...categories.map(c => c.name)];
@@ -40,7 +42,7 @@ export default function ProjectsPage() {
   // Use project.projectType as the category for filtering
   const processedProjects = visibleProjects.map((p, index) => ({
     ...p,
-    number: String(index + 1).padStart(2, "0"),
+    number: String(p.project_order || index + 1).padStart(2, "0"),
   }));
 
   const filteredProjects = processedProjects.filter((p) => {

@@ -628,7 +628,11 @@ function ProjectsTab({ showToast }) {
     items[swapIndex] = temp;
 
     // Reassign project_order continuously from 1 to N
-    const updatedItems = items.map((item, i) => ({ ...item, project_order: i + 1 }));
+    const updatedItems = items.map((item, i) => ({
+      ...item,
+      project_order: i + 1,
+      featured_order: item.featured ? i + 1 : (item.featured_order || 0)
+    }));
 
     // Optimistic UI update
     setProjects(updatedItems);
@@ -639,7 +643,58 @@ function ProjectsTab({ showToast }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ order: updatedItems.map(i => ({ id: i.id, project_order: i.project_order })) })
       });
+      const featuredItems = updatedItems.filter(p => p.featured);
+      if (featuredItems.length > 0) {
+        await apiFetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/projects/featured/reorder`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ order: featuredItems.map((p, idx) => ({ id: p.id, featured_order: idx + 1 })) })
+        }).catch(() => {});
+      }
       if (res.ok) showToast("Project order updated!", "success");
+      else showToast("Error updating order", "error");
+    } catch (e) {
+      showToast("Error updating order", "error");
+    }
+  };
+
+  // Directly set a project's number / position by typing a number
+  const handleSetProjectOrder = async (fromIndex, targetOrder) => {
+    const target = parseInt(targetOrder, 10);
+    if (isNaN(target)) return;
+    const clampedTarget = Math.max(1, Math.min(projects.length, target));
+    const toIndex = clampedTarget - 1;
+    if (fromIndex === toIndex) return;
+
+    const items = [...projects];
+    const [moved] = items.splice(fromIndex, 1);
+    items.splice(toIndex, 0, moved);
+
+    // Reassign project_order continuously from 1 to N
+    const updatedItems = items.map((item, i) => ({
+      ...item,
+      project_order: i + 1,
+      featured_order: item.featured ? i + 1 : (item.featured_order || 0)
+    }));
+
+    // Optimistic UI update
+    setProjects(updatedItems);
+
+    try {
+      const res = await apiFetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/projects/reorder`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order: updatedItems.map(i => ({ id: i.id, project_order: i.project_order })) })
+      });
+      const featuredItems = updatedItems.filter(p => p.featured);
+      if (featuredItems.length > 0) {
+        await apiFetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/projects/featured/reorder`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ order: featuredItems.map((p, idx) => ({ id: p.id, featured_order: idx + 1 })) })
+        }).catch(() => {});
+      }
+      if (res.ok) showToast(`Moved "${moved.title}" to #${clampedTarget}!`, "success");
       else showToast("Error updating order", "error");
     } catch (e) {
       showToast("Error updating order", "error");
@@ -710,7 +765,17 @@ function ProjectsTab({ showToast }) {
     };
 
     if (editingId) {
+      const targetPos = parseInt(form.project_order, 10);
+      const currentPos = projects.findIndex(p => p.id === editingId) + 1;
+
       edit(projects, setProjects, editingId, cleanedForm, 'projects');
+
+      if (!isNaN(targetPos) && targetPos !== currentPos && targetPos >= 1 && targetPos <= projects.length) {
+        setTimeout(() => {
+          handleSetProjectOrder(currentPos - 1, targetPos);
+        }, 150);
+      }
+
       showToast(
         isFeatured
           ? "Project updated! (Showing on Home Page & Projects Page)"
@@ -718,7 +783,13 @@ function ProjectsTab({ showToast }) {
         "success"
       );
     } else {
-      add(projects, setProjects, cleanedForm, 'projects');
+      const targetPos = parseInt(form.project_order, 10);
+      add(projects, setProjects, { ...cleanedForm, project_order: targetPos || projects.length + 1 }, 'projects');
+      if (!isNaN(targetPos) && targetPos < projects.length + 1) {
+        setTimeout(() => {
+          handleSetProjectOrder(projects.length, targetPos);
+        }, 350);
+      }
       showToast(
         isFeatured
           ? "Project added to Home Page & Projects Page!"
@@ -741,6 +812,8 @@ function ProjectsTab({ showToast }) {
       .map(s => (typeof s === 'string' ? s : s?.url || ''))
       .filter(Boolean);
 
+    const currentPosition = (projects.findIndex(p => p.id === project.id) + 1) || 1;
+
     setForm({
       ...blank,
       ...project,
@@ -753,6 +826,7 @@ function ProjectsTab({ showToast }) {
       hidden: Boolean(project.hidden),
       featured: Boolean(project.featured),
       featured_order: project.featured_order || 0,
+      project_order: currentPosition,
       status: project.status || "",
       version: project.version || "",
       extraInfo: project.extraInfo || [],
@@ -833,8 +907,29 @@ function ProjectsTab({ showToast }) {
                   <button onClick={() => moveProjectOrder(i, 'down')} disabled={i === projects.length - 1} className="text-[#64748B] hover:text-white disabled:opacity-30 p-1"><ArrowDown className="w-3 h-3" /></button>
                 </div>
                 
-                <div className="w-8 h-8 rounded-lg border border-[rgba(255,255,255,0.1)] flex flex-shrink-0 items-center justify-center font-bold text-xs bg-[rgba(37,99,235,0.1)] text-[#38BDF8]">
-                  #{i + 1}
+                <div className="relative flex items-center shrink-0 group/num" title="Click to write/change number position">
+                  <span className="absolute left-2 text-[11px] font-bold text-[#38BDF8] pointer-events-none select-none">#</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max={projects.length}
+                    defaultValue={i + 1}
+                    key={`proj-num-${p.id}-${i + 1}`}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.currentTarget.blur();
+                      }
+                    }}
+                    onBlur={(e) => {
+                      const val = parseInt(e.target.value, 10);
+                      if (!isNaN(val) && val !== i + 1) {
+                        handleSetProjectOrder(i, val);
+                      } else {
+                        e.target.value = i + 1;
+                      }
+                    }}
+                    className="w-12 h-8 pl-4 pr-1 text-center rounded-lg bg-[rgba(37,99,235,0.12)] hover:bg-[rgba(37,99,235,0.22)] focus:bg-[rgba(37,99,235,0.3)] border border-[rgba(56,189,248,0.25)] focus:border-[#38BDF8] text-[#38BDF8] focus:text-white font-mono font-bold text-xs outline-none transition-all shadow-[0_0_10px_rgba(37,99,235,0.15)] focus:ring-1 focus:ring-[#38BDF8] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none cursor-text"
+                  />
                 </div>
 
                 <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: p.color }} />
@@ -890,8 +985,28 @@ function ProjectsTab({ showToast }) {
         {open && (
           <div className="grid sm:grid-cols-2 gap-6">
             {/* Basic Info */}
-            <div className="sm:col-span-2 grid sm:grid-cols-2 gap-4">
-              <Field label="Title *"       name="title"       value={form.title}       onChange={onChange} placeholder="My Awesome App" />
+            <div className="sm:col-span-2 grid sm:grid-cols-3 gap-4">
+              <div className="sm:col-span-2">
+                <Field label="Title *"       name="title"       value={form.title}       onChange={onChange} placeholder="My Awesome App" />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wider flex items-center justify-between">
+                  <span>Display Number</span>
+                  <span className="text-[#64748B] normal-case font-normal text-[11px]">(Position #)</span>
+                </label>
+                <div className="relative flex items-center">
+                  <span className="absolute left-3 text-sm font-bold text-[#38BDF8] select-none">#</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max={projects.length + (editingId ? 0 : 1)}
+                    name="project_order"
+                    value={form.project_order || (editingId ? (projects.findIndex(p => p.id === editingId) + 1) : projects.length + 1)}
+                    onChange={(e) => setForm(f => ({ ...f, project_order: parseInt(e.target.value, 10) || 1 }))}
+                    className="w-full pl-8 pr-4 py-2.5 rounded-xl bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] text-white font-mono font-bold text-sm focus:outline-none focus:border-[#38BDF8] transition-all"
+                  />
+                </div>
+              </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wider">Project Accent Color</label>
                 <div className="flex items-center gap-2">
@@ -4801,6 +4916,38 @@ function FeaturedTab({ showToast }) {
     }
   };
 
+  // Directly set a featured project's number / position by typing a number
+  const handleSetFeaturedOrder = async (fromIndex, targetOrder) => {
+    const target = parseInt(targetOrder, 10);
+    if (isNaN(target)) return;
+    const clampedTarget = Math.max(1, Math.min(featuredProjects.length, target));
+    const toIndex = clampedTarget - 1;
+    if (fromIndex === toIndex) return;
+
+    const items = [...featuredProjects];
+    const [moved] = items.splice(fromIndex, 1);
+    items.splice(toIndex, 0, moved);
+
+    const updatedItems = items.map((item, i) => ({ ...item, featured_order: i + 1 }));
+
+    setProjects(projects.map(p => {
+      const updated = updatedItems.find(u => u.id === p.id);
+      return updated ? updated : p;
+    }));
+
+    try {
+      const res = await apiFetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/projects/featured/reorder`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order: updatedItems.map(i => ({ id: i.id, featured_order: i.featured_order })) })
+      });
+      if (res.ok) showToast(`Moved "${moved.title}" to Home Page #${clampedTarget}!`, "success");
+      else showToast("Error updating order", "error");
+    } catch (e) {
+      showToast("Error updating order", "error");
+    }
+  };
+
   const handleToggleVisibility = async (project) => {
     const updated = { ...project, hidden: !project.hidden };
     await edit(projects, setProjects, project.id, updated, 'projects');
@@ -4819,8 +4966,27 @@ function FeaturedTab({ showToast }) {
                   <button onClick={() => moveOrder(i, 'up')} disabled={i === 0} className="text-[#64748B] hover:text-white disabled:opacity-30"><ArrowUp className="w-3 h-3" /></button>
                   <button onClick={() => moveOrder(i, 'down')} disabled={i === featuredProjects.length - 1} className="text-[#64748B] hover:text-white disabled:opacity-30"><ArrowDown className="w-3 h-3" /></button>
                 </div>
-                <div className="w-8 h-8 rounded-lg border border-[rgba(255,255,255,0.1)] flex items-center justify-center font-bold text-xs bg-[rgba(245,158,11,0.1)] text-[#F59E0B]">
-                  #{i + 1}
+                <div className="relative flex items-center shrink-0" title="Click to write/change Home Page position">
+                  <span className="absolute left-2 text-[11px] font-bold text-[#F59E0B] pointer-events-none select-none">#</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max={featuredProjects.length}
+                    defaultValue={i + 1}
+                    key={`feat-num-${p.id}-${i + 1}`}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') e.currentTarget.blur();
+                    }}
+                    onBlur={(e) => {
+                      const val = parseInt(e.target.value, 10);
+                      if (!isNaN(val) && val !== i + 1) {
+                        handleSetFeaturedOrder(i, val);
+                      } else {
+                        e.target.value = i + 1;
+                      }
+                    }}
+                    className="w-12 h-8 pl-4 pr-1 text-center rounded-lg bg-[rgba(245,158,11,0.12)] hover:bg-[rgba(245,158,11,0.22)] focus:bg-[rgba(245,158,11,0.3)] border border-[rgba(245,158,11,0.3)] focus:border-[#F59E0B] text-[#F59E0B] focus:text-white font-mono font-bold text-xs outline-none transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none cursor-text"
+                  />
                 </div>
                 <div>
                   <p className="text-sm font-bold text-white">{p.title}</p>

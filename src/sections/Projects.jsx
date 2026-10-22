@@ -11,7 +11,11 @@ export default function Projects() {
 
   const featuredProjects = projects
     .filter(p => Boolean(p.featured) && !p.hidden)
-    .sort((a, b) => (a.featured_order || 0) - (b.featured_order || 0));
+    .sort((a, b) => {
+      const orderA = a.project_order || a.featured_order || 0;
+      const orderB = b.project_order || b.featured_order || 0;
+      return orderA - orderB;
+    });
 
   return (
     <section
@@ -75,9 +79,17 @@ export default function Projects() {
                 {/* Overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-[rgba(7,17,31,0.9)] via-[rgba(7,17,31,0.3)] to-transparent" />
 
+                {/* Number Badge */}
+                <div className="absolute top-3.5 left-3.5 px-2.5 py-1 rounded-lg bg-[rgba(7,17,31,0.85)] border border-[rgba(255,255,255,0.15)] backdrop-blur-md flex items-center gap-1.5 shadow-lg z-10">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#00BFFF] animate-pulse" />
+                  <span className="font-mono font-bold text-xs text-white tracking-wider">
+                    #{String(project.project_order || i + 1).padStart(2, "0")}
+                  </span>
+                </div>
+
                 {/* Color indicator */}
                 <div
-                  className="absolute top-4 right-4 w-3 h-3 rounded-full"
+                  className="absolute top-4 right-4 w-3 h-3 rounded-full z-10"
                   style={{
                     background: project.color,
                     boxShadow: `0 0 10px ${project.color}`,
