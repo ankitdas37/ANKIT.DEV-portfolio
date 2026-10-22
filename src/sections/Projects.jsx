@@ -10,8 +10,8 @@ export default function Projects() {
   const navigate = useNavigate();
 
   const featuredProjects = projects
-    .filter(p => p.featured && !p.hidden)
-    .sort((a, b) => a.featured_order - b.featured_order);
+    .filter(p => Boolean(p.featured) && !p.hidden)
+    .sort((a, b) => (a.featured_order || 0) - (b.featured_order || 0));
 
   return (
     <section

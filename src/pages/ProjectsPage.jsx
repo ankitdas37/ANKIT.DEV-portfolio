@@ -262,6 +262,11 @@ export default function ProjectsPage() {
                     {project.number}
                   </span>
                   <div className="flex flex-wrap justify-end gap-1 sm:gap-2 max-w-[60%]">
+                    {Boolean(project.featured) && (
+                      <span className="px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-[0.55rem] sm:text-[0.6rem] font-bold uppercase tracking-wider border border-[rgba(245,158,11,0.3)] bg-[rgba(245,158,11,0.12)] text-[#F59E0B] whitespace-nowrap flex items-center gap-1 shadow-[0_0_10px_rgba(245,158,11,0.15)]">
+                        ★ Featured
+                      </span>
+                    )}
                     {Array.isArray(project.projectType) ? project.projectType.map(pt => (
                       <span key={pt} className="px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full text-[0.55rem] sm:text-[0.6rem] font-medium uppercase tracking-wider border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.05)] text-[#94A3B8] whitespace-nowrap">
                         {pt}

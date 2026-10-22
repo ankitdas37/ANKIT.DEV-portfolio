@@ -35,7 +35,7 @@ const TABS = [
   { id: "skills",     label: "Skills",      icon: Cpu },
   { id: "projects",   label: "Projects",    icon: FolderGit2 },
   { id: "team_profiles", label: "Team Profiles", icon: Users },
-  { id: "featured",   label: "Featured",    icon: Star },
+  { id: "featured",   label: "Home Page (Featured)", icon: Star },
   { id: "categories", label: "Categories",  icon: Tags },
   { id: "gallery",    label: "Gallery",     icon: Image },
   { id: "certificates",label: "Certificates",icon: Award },
@@ -603,7 +603,7 @@ function SkillsTab({ showToast }) {
 
 function ProjectsTab({ showToast }) {
   const { projects, setProjects, add, remove, edit, categories, teamProfiles = [] } = useData();
-  const blank = { title: "", description: "", tech: "", github: "", demo: "", youtubeUrl: "", docsUrl: "", startDate: "", duration: "", color: "#7C3AED", image: "", logo: "", projectType: [], architecture: "", screenshots: [""], notes: [""], team: [], hidden: false, status: "", version: "", extraInfo: [] };
+  const blank = { title: "", description: "", tech: "", github: "", demo: "", youtubeUrl: "", docsUrl: "", startDate: "", duration: "", color: "#7C3AED", image: "", logo: "", projectType: [], architecture: "", screenshots: [""], notes: [""], team: [], hidden: false, featured: false, featured_order: 0, status: "", version: "", extraInfo: [] };
   const [form, setForm] = useState(blank);
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -689,6 +689,13 @@ function ProjectsTab({ showToast }) {
       .map(s => (typeof s === 'string' ? s : s?.url || ''))
       .filter(s => typeof s === 'string' && s.trim());
 
+    const isFeatured = Boolean(form.featured);
+    let newFeaturedOrder = form.featured_order || 0;
+    if (!editingId && isFeatured) {
+      const maxOrder = Math.max(0, ...projects.filter(p => p.featured).map(p => p.featured_order || 0));
+      newFeaturedOrder = maxOrder + 1;
+    }
+
     const cleanedForm = {
       ...form,
       tech: processedTech,
@@ -697,15 +704,27 @@ function ProjectsTab({ showToast }) {
       team: (form.team || []).filter(t => t && typeof t.name === 'string' && t.name.trim()),
       image: cleanedScreenshots[0] || form.image || "",
       logo: form.logo || "",
-      hidden: form.hidden || false,
+      hidden: Boolean(form.hidden),
+      featured: isFeatured,
+      featured_order: newFeaturedOrder,
     };
 
     if (editingId) {
       edit(projects, setProjects, editingId, cleanedForm, 'projects');
-      showToast("Project updated!", "success");
+      showToast(
+        isFeatured
+          ? "Project updated! (Showing on Home Page & Projects Page)"
+          : "Project updated! (Showing on Projects Page)",
+        "success"
+      );
     } else {
-      add(projects, setProjects, { ...cleanedForm, featured: true }, 'projects');
-      showToast("Project added!", "success");
+      add(projects, setProjects, cleanedForm, 'projects');
+      showToast(
+        isFeatured
+          ? "Project added to Home Page & Projects Page!"
+          : "Project added to Projects Page!",
+        "success"
+      );
     }
     setForm(blank); setOpen(false); setEditingId(null);
   };
@@ -731,7 +750,9 @@ function ProjectsTab({ showToast }) {
       notes: rawNotes,
       team: project.team || [],
       logo: project.logo || "",
-      hidden: project.hidden || false,
+      hidden: Boolean(project.hidden),
+      featured: Boolean(project.featured),
+      featured_order: project.featured_order || 0,
       status: project.status || "",
       version: project.version || "",
       extraInfo: project.extraInfo || [],
@@ -756,20 +777,47 @@ function ProjectsTab({ showToast }) {
     );
   };
 
-  const visibleCount = projects.filter(p => !p.hidden).length;
-  const hiddenCount  = projects.filter(p =>  p.hidden).length;
+  // Toggle featured status (Home Page display) instantly with 1-click
+  const handleToggleFeatured = async (project) => {
+    const isNowFeatured = !project.featured;
+    let newOrder = project.featured_order || 0;
+    if (isNowFeatured) {
+      const maxOrder = Math.max(0, ...projects.filter(p => p.featured).map(p => p.featured_order || 0));
+      newOrder = maxOrder + 1;
+    }
+    const updated = { ...project, featured: isNowFeatured, featured_order: newOrder };
+    await edit(projects, setProjects, project.id, updated, 'projects');
+    showToast(
+      isNowFeatured
+        ? "★ Added to Home Page (Featured)!"
+        : "Removed from Home Page (still in Projects page)",
+      isNowFeatured ? "success" : "info"
+    );
+  };
+
+  const visibleCount  = projects.filter(p => !p.hidden).length;
+  const hiddenCount   = projects.filter(p =>  p.hidden).length;
+  const featuredCount = projects.filter(p => Boolean(p.featured) && !p.hidden).length;
 
   return (
     <div className="space-y-6">
       <SectionCard title={`All Projects (${projects.length})`} color="#2563EB">
         {/* Live counters */}
-        <div className="flex gap-4 mb-4 text-xs">
-          <span className="px-3 py-1 rounded-full bg-[rgba(16,185,129,0.1)] border border-[rgba(16,185,129,0.2)] text-emerald-400 font-semibold">
-            {visibleCount} visible
+        <div className="flex flex-wrap items-center gap-2.5 mb-4 text-xs">
+          <span className="px-3 py-1 rounded-full bg-[rgba(16,185,129,0.1)] border border-[rgba(16,185,129,0.25)] text-emerald-400 font-semibold flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+            {visibleCount} in Projects Page
           </span>
-          <span className="px-3 py-1 rounded-full bg-[rgba(245,158,11,0.1)] border border-[rgba(245,158,11,0.2)] text-amber-400 font-semibold">
-            {hiddenCount} hidden
+          <span className="px-3 py-1 rounded-full bg-[rgba(245,158,11,0.1)] border border-[rgba(245,158,11,0.25)] text-amber-400 font-semibold flex items-center gap-1.5 shadow-[0_0_10px_rgba(245,158,11,0.15)]">
+            <Star className="w-3.5 h-3.5 fill-amber-400" />
+            {featuredCount} on Home Page
           </span>
+          {hiddenCount > 0 && (
+            <span className="px-3 py-1 rounded-full bg-[rgba(239,68,68,0.1)] border border-[rgba(239,68,68,0.25)] text-red-400 font-semibold flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
+              {hiddenCount} hidden
+            </span>
+          )}
         </div>
 
         <div className="space-y-3">
@@ -792,16 +840,36 @@ function ProjectsTab({ showToast }) {
                 <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: p.color }} />
                 
                 <div className="min-w-0">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <p className="text-sm font-semibold text-white truncate">{p.title}</p>
-                    {p.hidden && (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-[rgba(245,158,11,0.15)] text-amber-400 font-bold flex-shrink-0">HIDDEN</span>
+                    {p.hidden ? (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-[rgba(239,68,68,0.15)] text-red-400 font-bold flex-shrink-0 border border-[rgba(239,68,68,0.3)]">HIDDEN</span>
+                    ) : p.featured ? (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-[rgba(245,158,11,0.15)] text-amber-400 font-bold flex items-center gap-1 flex-shrink-0 border border-[rgba(245,158,11,0.3)] shadow-[0_0_8px_rgba(245,158,11,0.2)]">
+                        <Star className="w-3 h-3 fill-amber-400" /> HOME PAGE
+                      </span>
+                    ) : (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-[rgba(56,189,248,0.08)] text-[#38BDF8] font-medium flex-shrink-0 border border-[rgba(56,189,248,0.2)]">
+                        Projects Page Only
+                      </span>
                     )}
                   </div>
                   <p className="text-xs text-[#64748B] truncate">{Array.isArray(p.tech) ? p.tech.join(", ") : p.tech}</p>
                 </div>
               </div>
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleToggleFeatured(p)}
+                  className={`p-2 rounded-lg border transition-all ${
+                    p.featured
+                      ? "bg-[rgba(245,158,11,0.15)] border-[rgba(245,158,11,0.4)] text-amber-400 hover:bg-[rgba(245,158,11,0.25)] shadow-[0_0_10px_rgba(245,158,11,0.2)]"
+                      : "bg-[rgba(255,255,255,0.03)] border-[rgba(255,255,255,0.08)] text-[#64748B] hover:text-amber-400 hover:border-[rgba(245,158,11,0.3)]"
+                  }`}
+                  title={p.featured ? "Featured on Home Page (click to remove)" : "Not on Home Page (click to show on Home Page)"}
+                >
+                  <Star className={`w-4 h-4 ${p.featured ? "fill-amber-400" : ""}`} />
+                </button>
                 <VisibilityBtn hidden={p.hidden} onClick={() => handleToggleVisibility(p)} />
                 <EditBtn onClick={() => handleEditClick(p)} />
                 <DeleteBtn onClick={() => { remove(projects, setProjects, p.id, 'projects'); showToast("Project removed!", "error"); }} />
@@ -1385,6 +1453,49 @@ function ProjectsTab({ showToast }) {
                   <p className="text-xs text-[#475569] italic text-center py-3">No extra info cards. Click "Add Info Card" to add custom fields like Platform, License, Client, etc.</p>
                 )}
               </div>
+            </div>
+
+            {/* Home Page Featured Showcase Toggle */}
+            <div className="sm:col-span-2 flex items-center justify-between p-4 rounded-xl bg-[rgba(245,158,11,0.04)] border border-[rgba(245,158,11,0.18)] hover:border-[rgba(245,158,11,0.35)] transition-all">
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center border transition-all ${
+                  form.featured 
+                    ? "bg-[rgba(245,158,11,0.2)] border-[rgba(245,158,11,0.5)] text-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.25)]" 
+                    : "bg-[rgba(255,255,255,0.04)] border-[rgba(255,255,255,0.08)] text-[#64748B]"
+                }`}>
+                  <Star className={`w-5 h-5 ${form.featured ? "fill-amber-400" : ""}`} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-semibold text-white">Show on Home Page (Featured Project)</p>
+                    {form.featured && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-[rgba(245,158,11,0.2)] text-amber-300 font-bold border border-[rgba(245,158,11,0.35)]">
+                        ACTIVE ON HOME PAGE
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-[#94A3B8] mt-0.5">
+                    When enabled, this project will appear in the "Featured Projects" section on the Home Page.
+                  </p>
+                  <p className="text-[11px] text-[#64748B] mt-0.5">
+                    All visible projects will always appear on the public <span className="text-[#38BDF8]">/projects</span> page.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setForm(f => ({ ...f, featured: !f.featured }))}
+                className={`relative w-12 h-6 rounded-full transition-all duration-300 border shrink-0 ${
+                  form.featured
+                    ? "bg-[rgba(245,158,11,0.3)] border-[rgba(245,158,11,0.5)] shadow-[0_0_15px_rgba(245,158,11,0.3)]"
+                    : "bg-[rgba(255,255,255,0.08)] border-[rgba(255,255,255,0.15)]"
+                }`}
+                title="Toggle Home Page display"
+              >
+                <span className={`absolute top-0.5 w-5 h-5 rounded-full transition-all duration-300 shadow-md ${
+                  form.featured ? "left-6 bg-amber-400" : "left-0.5 bg-[#64748B]"
+                }`} />
+              </button>
             </div>
 
             {/* Visibility Toggle */}
@@ -4641,19 +4752,19 @@ function AboutMeTab({ showToast }) {
 function FeaturedTab({ showToast }) {
   const { projects, setProjects, edit } = useData();
 
-  const featuredProjects = projects.filter(p => p.featured).sort((a, b) => a.featured_order - b.featured_order);
+  const featuredProjects = projects.filter(p => Boolean(p.featured)).sort((a, b) => (a.featured_order || 0) - (b.featured_order || 0));
   const availableProjects = projects.filter(p => !p.featured);
 
   const toggleFeatured = async (project) => {
     const isNowFeatured = !project.featured;
-    let newOrder = project.featured_order;
+    let newOrder = project.featured_order || 0;
     if (isNowFeatured) {
-      const maxOrder = Math.max(0, ...featuredProjects.map(p => p.featured_order));
+      const maxOrder = Math.max(0, ...featuredProjects.map(p => p.featured_order || 0));
       newOrder = maxOrder + 1;
     }
     const updated = { ...project, featured: isNowFeatured, featured_order: newOrder };
     await edit(projects, setProjects, project.id, updated, 'projects');
-    showToast(isNowFeatured ? "Added to Featured" : "Removed from Featured", "success");
+    showToast(isNowFeatured ? "★ Added to Home Page showcase!" : "Removed from Home Page (still in /projects page)", "success");
   };
 
   const moveOrder = async (index, direction) => {
@@ -4698,8 +4809,8 @@ function FeaturedTab({ showToast }) {
 
   return (
     <div className="grid md:grid-cols-2 gap-6">
-      <SectionCard title="Featured List (Frontpage)" color="#F59E0B">
-        <p className="text-xs text-[#94A3B8] mb-4">These projects will appear on the Frontpage exactly in this order.</p>
+      <SectionCard title="Home Page Featured Showcase" color="#F59E0B">
+        <p className="text-xs text-[#94A3B8] mb-4">These projects appear in the "Featured Projects" section on your Home Page in this exact order.</p>
         <div className="space-y-3">
           {featuredProjects.map((p, i) => (
             <div key={p.id} className="flex items-center justify-between p-3 rounded-xl bg-[rgba(255,255,255,0.03)] border border-[rgba(245,158,11,0.2)]">
@@ -4713,23 +4824,23 @@ function FeaturedTab({ showToast }) {
                 </div>
                 <div>
                   <p className="text-sm font-bold text-white">{p.title}</p>
-                  {p.hidden && <span className="text-[10px] px-2 py-0.5 rounded-full bg-[rgba(245,158,11,0.15)] text-amber-400 font-bold">HIDDEN</span>}
+                  {p.hidden && <span className="text-[10px] px-2 py-0.5 rounded-full bg-[rgba(239,68,68,0.15)] text-red-400 font-bold">HIDDEN</span>}
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <VisibilityBtn hidden={p.hidden} onClick={() => handleToggleVisibility(p)} />
-                <button onClick={() => toggleFeatured(p)} className="p-2 rounded-lg bg-[rgba(245,158,11,0.1)] text-[#F59E0B] hover:bg-[rgba(245,158,11,0.2)]" title="Remove from Featured">
+                <button onClick={() => toggleFeatured(p)} className="p-2 rounded-lg bg-[rgba(245,158,11,0.1)] text-[#F59E0B] hover:bg-[rgba(245,158,11,0.2)]" title="Remove from Home Page">
                   <Star className="w-4 h-4 fill-current" />
                 </button>
               </div>
             </div>
           ))}
-          {featuredProjects.length === 0 && <p className="text-sm text-[#475569] text-center py-4">No featured projects yet.</p>}
+          {featuredProjects.length === 0 && <p className="text-sm text-[#475569] text-center py-4">No projects on the Home Page yet. Click the star on any project on the right to add it.</p>}
         </div>
       </SectionCard>
 
-      <SectionCard title="Available Projects" color="#38BDF8">
-        <p className="text-xs text-[#94A3B8] mb-4">Click the star to add a project to the featured list.</p>
+      <SectionCard title="Other Projects (In /projects page only)" color="#38BDF8">
+        <p className="text-xs text-[#94A3B8] mb-4">Click the star to add a project to the Home Page showcase.</p>
         <div className="space-y-3">
           {availableProjects.map(p => (
             <div key={p.id} className="flex items-center justify-between p-3 rounded-xl bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)]">
@@ -4737,12 +4848,15 @@ function FeaturedTab({ showToast }) {
                 <p className="text-sm font-bold text-white">{p.title}</p>
                 <p className="text-xs text-[#64748B] truncate max-w-[200px]">{Array.isArray(p.tech) ? p.tech.join(", ") : p.tech}</p>
               </div>
-              <button onClick={() => toggleFeatured(p)} className="p-2 rounded-lg bg-[rgba(255,255,255,0.05)] text-[#94A3B8] hover:bg-[rgba(255,255,255,0.1)] hover:text-white" title="Add to Featured">
-                <Star className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-2">
+                {p.hidden && <span className="text-[10px] px-2 py-0.5 rounded-full bg-[rgba(239,68,68,0.15)] text-red-400 font-bold">HIDDEN</span>}
+                <button onClick={() => toggleFeatured(p)} className="p-2 rounded-lg bg-[rgba(255,255,255,0.05)] text-[#94A3B8] hover:bg-[rgba(245,158,11,0.15)] hover:text-amber-400" title="Add to Home Page">
+                  <Star className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           ))}
-          {availableProjects.length === 0 && <p className="text-sm text-[#475569] text-center py-4">All projects are featured!</p>}
+          {availableProjects.length === 0 && <p className="text-sm text-[#475569] text-center py-4">All projects are currently shown on the Home Page!</p>}
         </div>
       </SectionCard>
     </div>
