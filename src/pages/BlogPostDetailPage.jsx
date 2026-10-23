@@ -10,7 +10,6 @@ import {
 } from "lucide-react";
 import { GithubIcon, LinkedinIcon, XIcon } from "../components/SocialIcons";
 import { useData } from "../context/DataContext";
-import { blogPosts as defaultBlogPosts } from "../data/portfolio";
 import { useState, useEffect, useMemo, useRef } from "react";
 import toast from "react-hot-toast";
 import ReactMarkdown from "react-markdown";
@@ -906,7 +905,7 @@ function ArticleDetailsSidebar({
 export default function BlogPostDetailPage() {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const { blogPosts: apiPosts } = useData();
+  const { blogPosts: apiPosts, loadingBlog } = useData();
 
   const [scrollProgress, setScrollProgress] = useState(0);
   const [activeSection, setActiveSection] = useState("");
@@ -928,18 +927,9 @@ export default function BlogPostDetailPage() {
   const [readerAccentColor, setReaderAccentColor] = useState(null);
   const [showReaderCustomizer, setShowReaderCustomizer] = useState(false);
 
-  // Merge API posts with default fallback posts so full developer guides are accessible
+  // Only real published posts that exist in the system (no fake/mock fallback posts)
   const allPosts = useMemo(() => {
-    const map = new Map();
-    defaultBlogPosts.forEach((p) => {
-      const key = p.slug || String(p.id);
-      map.set(key, p);
-    });
-    (apiPosts || []).forEach((p) => {
-      const key = p.slug || String(p.id);
-      map.set(key, p);
-    });
-    return Array.from(map.values()).filter((p) => !p.hidden);
+    return (apiPosts || []).filter((p) => !p.hidden);
   }, [apiPosts]);
 
   // Current Post Lookup
@@ -1117,7 +1107,7 @@ export default function BlogPostDetailPage() {
   // Related / Referred other articles (for Right Sidebar and recommendations)
   const otherPosts = useMemo(() => {
     if (!post) return [];
-    const currentKey = post.slug || String(post.id);
+    const currentKey = String(post.slug || post.id);
     const postTag = (post.tag || (Array.isArray(post.tags) && post.tags[0]) || "").toLowerCase();
 
     // 1. Manually curated / recommended articles from Admin
@@ -1136,32 +1126,36 @@ export default function BlogPostDetailPage() {
     const curated = [];
     recommendedKeys.forEach((k) => {
       const match = allPosts.find(
-        (p) => (p.slug === k || String(p.id) === k) && (p.slug || String(p.id)) !== currentKey
+        (p) => (String(p.slug) === k || String(p.id) === k) && String(p.slug || p.id) !== currentKey
       );
-      if (match && !curated.some((c) => (c.slug || String(c.id)) === (match.slug || String(match.id)))) {
+      if (match && !curated.some((c) => String(c.slug || c.id) === String(match.slug || match.id))) {
         curated.push(match);
       }
     });
 
-    // 2. Prioritize articles with similar tag/category
+    // If author specifically hand-picked recommended articles in Admin:
+    // ONLY display those curated articles that actually exist in the database!
+    if (recommendedKeys.length > 0) {
+      return curated;
+    }
+
+    // Otherwise, if no specific recommendations were curated:
+    // Only display other real articles if any exist in the database (matching tag first, then others)
     const related = allPosts.filter((p) => {
-      const key = p.slug || String(p.id);
+      const key = String(p.slug || p.id);
       if (key === currentKey) return false;
-      if (curated.some((c) => (c.slug || String(c.id)) === key)) return false;
       const pTag = (p.tag || (Array.isArray(p.tags) && p.tags[0]) || "").toLowerCase();
       return pTag && postTag && pTag === postTag;
     });
 
-    // 3. Remainder of articles
     const others = allPosts.filter((p) => {
-      const key = p.slug || String(p.id);
+      const key = String(p.slug || p.id);
       if (key === currentKey) return false;
-      if (curated.some((c) => (c.slug || String(c.id)) === key)) return false;
-      if (related.some((r) => (r.slug || String(r.id)) === key)) return false;
+      if (related.some((r) => String(r.slug || r.id) === key)) return false;
       return true;
     });
 
-    return [...curated, ...related, ...others].slice(0, 5);
+    return [...related, ...others].slice(0, 5);
   }, [allPosts, post]);
 
   // Handle escape key to close modals
@@ -1233,12 +1227,22 @@ export default function BlogPostDetailPage() {
     setMobileDrawerOpen(false);
   };
 
-  // Previous & Next posts
+  // Previous & Next posts (strictly from existing real posts)
   const postIndex = allPosts.findIndex((p) => p.slug === slug || String(p.id) === slug);
   const prevPost = postIndex > 0 ? allPosts[postIndex - 1] : null;
-  const nextPost = postIndex < allPosts.length - 1 ? allPosts[postIndex + 1] : null;
+  const nextPost = postIndex >= 0 && postIndex < allPosts.length - 1 ? allPosts[postIndex + 1] : null;
 
   if (!post) {
+    if (loadingBlog && (!apiPosts || apiPosts.length === 0)) {
+      return (
+        <main className="min-h-screen bg-[#02050D] flex items-center justify-center px-4">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-10 h-10 rounded-full border-2 border-sky-400 border-t-transparent animate-spin" />
+            <p className="text-xs font-mono text-slate-400 tracking-wider uppercase">Loading Article...</p>
+          </div>
+        </main>
+      );
+    }
     return (
       <main className="min-h-screen bg-[#02050D] flex items-center justify-center px-4 text-center">
         <motion.div
@@ -2211,41 +2215,43 @@ export default function BlogPostDetailPage() {
             </motion.article>
 
             {/* ── Previous & Next Guides Navigation ────── */}
-            <div className="grid sm:grid-cols-2 gap-4 mt-16 pt-8 border-t border-white/[0.08]">
-              {prevPost ? (
-                <Link
-                  to={`/blog/${prevPost.slug || prevPost.id}`}
-                  className="group p-4 rounded-2xl border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.04] hover:border-sky-500/30 transition-all text-left"
-                >
-                  <div className="flex items-center gap-1.5 text-xs text-slate-400 mb-1 group-hover:text-sky-400">
-                    <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" />
-                    <span className="font-mono uppercase text-[11px]">Previous Guide</span>
-                  </div>
-                  <p className="text-sm font-semibold text-white group-hover:text-sky-300 transition-colors line-clamp-1">
-                    {prevPost.title}
-                  </p>
-                </Link>
-              ) : (
-                <div />
-              )}
+            {(prevPost || nextPost) && (
+              <div className="grid sm:grid-cols-2 gap-4 mt-16 pt-8 border-t border-white/[0.08]">
+                {prevPost ? (
+                  <Link
+                    to={`/blog/${prevPost.slug || prevPost.id}`}
+                    className="group p-4 rounded-2xl border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.04] hover:border-sky-500/30 transition-all text-left"
+                  >
+                    <div className="flex items-center gap-1.5 text-xs text-slate-400 mb-1 group-hover:text-sky-400">
+                      <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" />
+                      <span className="font-mono uppercase text-[11px]">Previous Guide</span>
+                    </div>
+                    <p className="text-sm font-semibold text-white group-hover:text-sky-300 transition-colors line-clamp-1">
+                      {prevPost.title}
+                    </p>
+                  </Link>
+                ) : (
+                  <div />
+                )}
 
-              {nextPost ? (
-                <Link
-                  to={`/blog/${nextPost.slug || nextPost.id}`}
-                  className="group p-4 rounded-2xl border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.04] hover:border-sky-500/30 transition-all text-right sm:ml-auto w-full"
-                >
-                  <div className="flex items-center justify-end gap-1.5 text-xs text-slate-400 mb-1 group-hover:text-sky-400">
-                    <span className="font-mono uppercase text-[11px]">Next Guide</span>
-                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
-                  </div>
-                  <p className="text-sm font-semibold text-white group-hover:text-sky-300 transition-colors line-clamp-1">
-                    {nextPost.title}
-                  </p>
-                </Link>
-              ) : (
-                <div />
-              )}
-            </div>
+                {nextPost ? (
+                  <Link
+                    to={`/blog/${nextPost.slug || nextPost.id}`}
+                    className="group p-4 rounded-2xl border border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.04] hover:border-sky-500/30 transition-all text-right sm:ml-auto w-full"
+                  >
+                    <div className="flex items-center justify-end gap-1.5 text-xs text-slate-400 mb-1 group-hover:text-sky-400">
+                      <span className="font-mono uppercase text-[11px]">Next Guide</span>
+                      <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                    </div>
+                    <p className="text-sm font-semibold text-white group-hover:text-sky-300 transition-colors line-clamp-1">
+                      {nextPost.title}
+                    </p>
+                  </Link>
+                ) : (
+                  <div />
+                )}
+              </div>
+            )}
 
             {/* ── Share Bar ─────────────────── */}
             <div className="mt-10 p-5 rounded-2xl border border-white/[0.08] bg-white/[0.02] flex flex-wrap items-center justify-between gap-4">

@@ -4,13 +4,26 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ExternalLink, Search, ChevronRight, ChevronLeft, Layout, Shield, Zap, Monitor, Code, Share2, FolderGit2, Code2, Sparkles } from "lucide-react";
 import { GithubIcon } from "../components/SocialIcons";
 import { useData } from "../context/DataContext";
+import { useLenis } from "lenis/react";
 import toast from "react-hot-toast";
+
 export default function ProjectsPage() {
   const { projects, categories } = useData();
   const [activeCategory, setActiveCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const navigate = useNavigate();
+  const lenis = useLenis();
+
+  // Scroll to top helper on pagination click
+  const handlePageChange = (newPage) => {
+    if (newPage === currentPage || newPage < 1 || newPage > totalPages) return;
+    setCurrentPage(newPage);
+    if (lenis) {
+      lenis.scrollTo(0, { immediate: false, duration: 0.8 });
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   // Reset to page 1 when filters change
   useEffect(() => {
@@ -386,23 +399,24 @@ export default function ProjectsPage() {
         {totalPages > 1 && (
           <div className="flex justify-center items-center gap-2 mb-20">
             <button 
-              onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+              onClick={() => handlePageChange(currentPage - 1)}
               disabled={currentPage === 1}
-              className={`w-8 h-8 rounded flex items-center justify-center border border-[rgba(255,255,255,0.1)] transition-colors ${currentPage === 1 ? 'bg-[rgba(255,255,255,0.03)] text-[#64748B] cursor-not-allowed' : 'bg-[rgba(255,255,255,0.05)] text-[#94A3B8] hover:text-white hover:bg-[rgba(255,255,255,0.1)]'}`}
+              className={`w-9 h-9 rounded-xl flex items-center justify-center border border-[rgba(255,255,255,0.1)] transition-all ${currentPage === 1 ? 'bg-[rgba(255,255,255,0.03)] text-[#64748B] cursor-not-allowed opacity-50' : 'bg-[rgba(255,255,255,0.05)] text-[#94A3B8] hover:text-white hover:bg-[rgba(255,255,255,0.1)] hover:border-cyan-500/40 active:scale-95'}`}
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
             
             {Array.from({ length: totalPages }).map((_, i) => {
               const pageNumber = i + 1;
+              const isActive = currentPage === pageNumber;
               return (
                 <button 
                   key={pageNumber}
-                  onClick={() => setCurrentPage(pageNumber)}
-                  className={`w-8 h-8 rounded flex items-center justify-center transition-colors ${
-                    currentPage === pageNumber 
-                      ? 'bg-[#7C3AED] text-white shadow-[0_0_15px_rgba(124,58,237,0.4)]' 
-                      : 'border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.03)] text-[#94A3B8] hover:bg-[rgba(255,255,255,0.1)] hover:text-white'
+                  onClick={() => handlePageChange(pageNumber)}
+                  className={`w-9 h-9 rounded-xl font-mono text-sm font-bold flex items-center justify-center transition-all ${
+                    isActive 
+                      ? 'bg-gradient-to-r from-[#00BFFF] to-[#7C3AED] text-white shadow-[0_0_20px_rgba(0,191,255,0.4)] border border-cyan-400/50 scale-105' 
+                      : 'border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.03)] text-[#94A3B8] hover:bg-[rgba(255,255,255,0.08)] hover:text-white hover:border-white/20 active:scale-95'
                   }`}
                 >
                   {pageNumber}
@@ -411,9 +425,9 @@ export default function ProjectsPage() {
             })}
 
             <button 
-              onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+              onClick={() => handlePageChange(currentPage + 1)}
               disabled={currentPage === totalPages}
-              className={`w-8 h-8 rounded flex items-center justify-center border border-[rgba(255,255,255,0.1)] transition-colors ${currentPage === totalPages ? 'bg-[rgba(255,255,255,0.03)] text-[#64748B] cursor-not-allowed' : 'bg-[rgba(255,255,255,0.05)] text-[#94A3B8] hover:text-white hover:bg-[rgba(255,255,255,0.1)]'}`}
+              className={`w-9 h-9 rounded-xl flex items-center justify-center border border-[rgba(255,255,255,0.1)] transition-all ${currentPage === totalPages ? 'bg-[rgba(255,255,255,0.03)] text-[#64748B] cursor-not-allowed opacity-50' : 'bg-[rgba(255,255,255,0.05)] text-[#94A3B8] hover:text-white hover:bg-[rgba(255,255,255,0.1)] hover:border-cyan-500/40 active:scale-95'}`}
             >
               <ChevronRight className="w-4 h-4" />
             </button>

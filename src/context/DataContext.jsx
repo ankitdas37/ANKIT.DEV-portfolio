@@ -4,7 +4,6 @@ import {
   achievementsGallery as defaultGallery,
   certificates as defaultCertificates,
   testimonials as defaultTestimonials,
-  blogPosts as defaultBlogPosts,
 } from "../data/portfolio";
 
 const DataContext = createContext(null);
@@ -47,12 +46,19 @@ export function DataProvider({ children }) {
   const [certificates, setCertificates] = useState(() => load(LS.certificates, []));
   const [testimonials, setTestimonials] = useState(() => load(LS.testimonials, []));
   const [blogPosts,    setBlogPosts]    = useState(() => load(LS.blogPosts, []));
+  const [loadingBlog,  setLoadingBlog]  = useState(true);
 
   useEffect(() => {
     if (certificates && certificates.length > 0) {
       save(LS.certificates, certificates);
     }
   }, [certificates]);
+
+  useEffect(() => {
+    if (blogPosts && blogPosts.length > 0) {
+      save(LS.blogPosts, blogPosts);
+    }
+  }, [blogPosts]);
   const [infoItems,    setInfoItems]       = useState([]);
   const [aboutMe,      setAboutMe]         = useState(null);
   const [education,    setEducation]       = useState(null);
@@ -110,9 +116,17 @@ export function DataProvider({ children }) {
         if (resGal.ok) { const d = await resGal.json(); if (Array.isArray(d)) setGallery(d); }
         if (resCert.ok) { const d = await resCert.json(); if (Array.isArray(d)) setCertificates(d.length > 0 ? d : load(LS.certificates, d)); }
         if (resTest.ok) { const d = await resTest.json(); if (Array.isArray(d)) setTestimonials(d); }
-        if (resBlog.ok) { const d = await resBlog.json(); if (Array.isArray(d)) setBlogPosts(d); }
+        if (resBlog.ok) {
+          const d = await resBlog.json();
+          if (Array.isArray(d)) {
+            setBlogPosts(d);
+            save(LS.blogPosts, d);
+          }
+        }
       } catch (err) {
         console.error("Error fetching dynamic sections:", err);
+      } finally {
+        setLoadingBlog(false);
       }
     };
     fetchSections();
@@ -328,6 +342,7 @@ export function DataProvider({ children }) {
         certificates, setCertificates,
         testimonials, setTestimonials,
         blogPosts,    setBlogPosts,
+        loadingBlog,
         infoItems,    setInfoItems,
         aboutMe,      updateAboutMe,
         education,    updateEducation,
