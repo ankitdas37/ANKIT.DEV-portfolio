@@ -1,23 +1,43 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Clock, Calendar, ArrowRight, Search, BookOpen, Share2, Sparkles, X, Tag } from "lucide-react";
 import { useData } from "../context/DataContext";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
+// Helper to extract clean array of tags
+const getPostTags = (p) => {
+  if (!p) return [];
+  if (Array.isArray(p.tags) && p.tags.length > 0) return p.tags.map(t => String(t).trim()).filter(Boolean);
+  if (typeof p.tag === "string" && p.tag.trim()) {
+    return p.tag.split(",").map(t => t.trim()).filter(Boolean);
+  }
+  return [];
+};
+
 export default function BlogPage() {
   const { blogPosts: allPosts } = useData();
   const navigate = useNavigate();
   const blogPosts = allPosts.filter(p => !p.hidden);
-  const ALL_TAGS = ["All", ...Array.from(new Set(blogPosts.map((p) => p.tag).filter(Boolean)))];
+
+  const ALL_TAGS = useMemo(() => {
+    const set = new Set();
+    blogPosts.forEach(p => {
+      getPostTags(p).forEach(t => set.add(t));
+    });
+    return ["All", ...Array.from(set)];
+  }, [blogPosts]);
+
   const [search, setSearch] = useState("");
   const [activeTag, setActiveTag] = useState("All");
 
   const filtered = blogPosts.filter((p) => {
-    const matchTag = activeTag === "All" || p.tag === activeTag;
+    const postTags = getPostTags(p);
+    const matchTag = activeTag === "All" || postTags.some(t => t.toLowerCase() === activeTag.toLowerCase()) || (typeof p.tag === 'string' && p.tag.toLowerCase().includes(activeTag.toLowerCase()));
     const matchSearch =
       (p.title && p.title.toLowerCase().includes(search.toLowerCase())) ||
-      (p.excerpt && p.excerpt.toLowerCase().includes(search.toLowerCase()));
+      (p.excerpt && p.excerpt.toLowerCase().includes(search.toLowerCase())) ||
+      postTags.some(t => t.toLowerCase().includes(search.toLowerCase()));
     return matchTag && matchSearch;
   });
 
@@ -47,9 +67,16 @@ export default function BlogPage() {
   return (
     <main className="min-h-screen pt-24 xs:pt-28 sm:pt-32 pb-28 sm:pb-32 px-4 sm:px-6 lg:px-8 relative overflow-x-hidden">
 
-      {/* Ambient glows */}
-      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[340px] xs:w-[480px] sm:w-[600px] h-[300px] xs:h-[400px] rounded-full bg-gradient-to-br from-[#7C3AED]/10 via-[#00BFFF]/5 to-transparent blur-[120px] pointer-events-none" />
-      <div className="fixed bottom-10 right-0 w-[300px] sm:w-[450px] h-[300px] rounded-full bg-[#2563EB]/5 blur-[140px] pointer-events-none" />
+      {/* Lightweight Ambient Background */}
+      <div 
+        className="fixed inset-0 pointer-events-none z-0 overflow-hidden opacity-35"
+        style={{
+          backgroundImage: `
+            radial-gradient(circle at 50% 10%, rgba(124, 58, 237, 0.08) 0%, transparent 45%),
+            radial-gradient(circle at 90% 80%, rgba(37, 99, 235, 0.06) 0%, transparent 45%)
+          `,
+        }}
+      />
 
       <div className="max-w-6xl mx-auto relative z-10">
 
@@ -254,15 +281,28 @@ export default function BlogPage() {
                 />
 
                 <div className="p-4 xs:p-5 sm:p-6 flex flex-col flex-1">
-                  {/* Emoji + tag */}
-                  <div className="flex items-center justify-between mb-3.5 sm:mb-4">
-                    <span
-                      className="text-[11px] sm:text-xs font-bold px-2.5 py-1 rounded-full border border-current/20"
-                      style={{ color: post.tagColor || "#A855F7", background: `${post.tagColor || "#A855F7"}15` }}
-                    >
-                      {post.tag || "Article"}
-                    </span>
-                    <span className="text-2xl sm:text-3xl">{post.emoji || "📝"}</span>
+                  {/* Emoji + tags */}
+                  <div className="flex items-center justify-between mb-3.5 sm:mb-4 gap-2">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {getPostTags(post).slice(0, 3).map((t) => (
+                        <span
+                          key={t}
+                          className="text-[11px] sm:text-xs font-bold px-2.5 py-0.5 rounded-full border border-current/20"
+                          style={{ color: post.tagColor || "#A855F7", background: `${post.tagColor || "#A855F7"}15` }}
+                        >
+                          {t}
+                        </span>
+                      ))}
+                      {getPostTags(post).length === 0 && (
+                        <span
+                          className="text-[11px] sm:text-xs font-bold px-2.5 py-0.5 rounded-full border border-current/20"
+                          style={{ color: post.tagColor || "#A855F7", background: `${post.tagColor || "#A855F7"}15` }}
+                        >
+                          Article
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-2xl sm:text-3xl shrink-0">{post.emoji || "📝"}</span>
                   </div>
 
                   {/* Title */}
@@ -271,9 +311,56 @@ export default function BlogPage() {
                   </h2>
 
                   {/* Excerpt */}
-                  <p className="text-xs text-slate-400 leading-relaxed line-clamp-3 flex-1 mb-4 sm:mb-5">
+                  <p className="text-xs text-slate-400 leading-relaxed line-clamp-3 flex-1 mb-3 sm:mb-4">
                     {post.excerpt}
                   </p>
+
+                  {/* Image container styled like Project Page */}
+                  <div className="relative w-full aspect-video rounded-md sm:rounded-lg overflow-hidden border border-[rgba(255,255,255,0.1)] mb-3 sm:mb-4 shadow-[0_5px_15px_rgba(0,0,0,0.5)] mt-auto bg-[#0A0F1E]">
+                    {/* Glowing platform under image */}
+                    <div
+                      className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-[80%] h-4 blur-xl transition-all duration-500 opacity-50 group-hover:opacity-100"
+                      style={{ backgroundColor: post.tagColor || '#7C3AED' }}
+                    />
+                    {post.image ? (
+                      <img
+                        src={post.image}
+                        alt={post.title}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';
+                        }}
+                      />
+                    ) : null}
+                    <div className={`w-full h-full flex-col items-center justify-center p-4 text-center bg-gradient-to-br from-[#0c1427] via-[#090d1a] to-[#050811] ${post.image ? 'hidden' : 'flex'}`}>
+                      <div
+                        className="w-10 h-10 rounded-xl flex items-center justify-center mb-2 border text-xl"
+                        style={{
+                          backgroundColor: `${post.tagColor || '#7C3AED'}20`,
+                          borderColor: `${post.tagColor || '#7C3AED'}40`
+                        }}
+                      >
+                        {post.emoji ? <span>{post.emoji}</span> : <BookOpen className="w-5 h-5" style={{ color: post.tagColor || '#7C3AED' }} />}
+                      </div>
+                      <span className="text-white text-xs font-space font-bold line-clamp-1">{post.title}</span>
+                      <span className="text-[10px] text-[#64748B] font-mono mt-0.5">Article Cover</span>
+                    </div>
+                    <div className="absolute inset-0 bg-gradient-to-t from-[rgba(0,0,0,0.8)] via-transparent to-transparent opacity-60 pointer-events-none" />
+
+                    {/* Tag overlay badges */}
+                    <div className="absolute bottom-2 left-2 right-2 flex flex-wrap gap-1 sm:gap-1.5">
+                      {getPostTags(post).slice(0, 4).map((t) => (
+                        <span
+                          key={t}
+                          className="px-1.5 py-0.5 sm:px-2 sm:py-0.5 bg-[rgba(0,0,0,0.65)] backdrop-blur-md rounded border border-[rgba(255,255,255,0.12)] text-[0.55rem] sm:text-[0.6rem] font-medium text-white flex items-center gap-1"
+                        >
+                          <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: post.tagColor || '#00BFFF' }} />
+                          {t}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
 
                   {/* Footer */}
                   <div className="flex items-center justify-between pt-3.5 border-t border-[rgba(255,255,255,0.06)]">

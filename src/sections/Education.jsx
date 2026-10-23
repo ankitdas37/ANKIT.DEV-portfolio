@@ -19,14 +19,7 @@ const getIcon = (iconName) => {
   }
 };
 
-const particles = Array.from({ length: 20 }, (_, i) => ({
-  id: i,
-  x: Math.random() * 100,
-  y: Math.random() * 100,
-  size: Math.random() * 4 + 1,
-  duration: Math.random() * 5 + 5,
-  delay: Math.random() * 3,
-}));
+
 
 export default function Education() {
   const { education } = useData();
@@ -43,42 +36,25 @@ export default function Education() {
   } = education;
 
   return (
-    <section id="education" className="relative py-10 md:py-20 bg-[#02050D] overflow-hidden" aria-label="Education">
-      {/* Active Particle Background */}
+    <section id="education" className="relative py-10 md:py-20 bg-[#02050D] overflow-hidden section-contain" aria-label="Education">
+      {/* Active Lightweight Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
         {/* Subtle grid pattern */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]" />
         
-        {/* Gradients */}
-        <div className="absolute top-20 left-0 w-[500px] h-[500px] rounded-full bg-[#7C3AED] opacity-[0.05] blur-[120px]" />
-        <div className="absolute bottom-20 right-0 w-[400px] h-[400px] rounded-full bg-[#06B6D4] opacity-[0.05] blur-[120px]" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-[#3B82F6] opacity-[0.03] blur-[150px]" />
-
-        {/* Floating Particles */}
-        {particles.map((p) => (
-          <motion.div
-            key={p.id}
-            className="absolute rounded-full bg-[#00BFFF]"
-            style={{
-              left: `${p.x}%`,
-              top: `${p.y}%`,
-              width: p.size,
-              height: p.size,
-              opacity: 0.3,
-            }}
-            animate={{
-              y: [0, -40, 0],
-              opacity: [0.1, 0.8, 0.1],
-              scale: [1, 1.5, 1],
-            }}
-            transition={{
-              duration: p.duration,
-              delay: p.delay,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
-          />
-        ))}
+        {/* Lightweight radial ambient accents */}
+        <div 
+          className="absolute top-20 left-0 w-[500px] h-[500px] rounded-full opacity-40 pointer-events-none"
+          style={{ background: "radial-gradient(circle, rgba(124,58,237,0.08) 0%, transparent 70%)" }}
+        />
+        <div 
+          className="absolute bottom-20 right-0 w-[400px] h-[400px] rounded-full opacity-40 pointer-events-none"
+          style={{ background: "radial-gradient(circle, rgba(6,182,212,0.08) 0%, transparent 70%)" }}
+        />
+        <div 
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full opacity-30 pointer-events-none"
+          style={{ background: "radial-gradient(circle, rgba(59,130,246,0.06) 0%, transparent 70%)" }}
+        />
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">

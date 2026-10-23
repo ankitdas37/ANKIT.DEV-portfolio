@@ -23,6 +23,8 @@
 
   html {
     scroll-padding-top: 80px;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
   }
   
   html.lenis, html.lenis body {
@@ -43,6 +45,18 @@
 
   .lenis.lenis-smooth iframe {
     pointer-events: none;
+  }
+
+  /* GPU Acceleration & Performance utilities */
+  .gpu-accelerated {
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+  }
+
+  .section-contain {
+    content-visibility: auto;
+    contain-intrinsic-size: 1px 750px;
   }
 
   html, body {

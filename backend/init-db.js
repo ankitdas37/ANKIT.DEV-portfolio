@@ -145,6 +145,9 @@ async function initDB() {
       category VARCHAR(100),
       link VARCHAR(500),
       image VARCHAR(500),
+      images LONGTEXT,
+      pdf_url VARCHAR(1000) DEFAULT '',
+      cert_order INT DEFAULT 0,
       hidden TINYINT(1) DEFAULT 0,
       hours INT DEFAULT 0,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -269,8 +272,37 @@ async function initDB() {
       if (!names.includes('content')) {
         await conn.query("ALTER TABLE blog_posts ADD COLUMN content LONGTEXT");
       }
+      if (!names.includes('author')) {
+        await conn.query("ALTER TABLE blog_posts ADD COLUMN author LONGTEXT");
+      }
+      if (!names.includes('links')) {
+        await conn.query("ALTER TABLE blog_posts ADD COLUMN links LONGTEXT");
+      }
+      if (!names.includes('markdown')) {
+        await conn.query("ALTER TABLE blog_posts ADD COLUMN markdown LONGTEXT");
+      }
     } catch (e) {
       console.warn("⚠️ blog_posts column check:", e.message);
+    }
+
+    // 4. Ensure certificates has cert_order, images, pdf_url
+    try {
+      const [certCols] = await conn.query("SHOW COLUMNS FROM certificates");
+      const names = certCols.map(c => c.Field);
+      if (!names.includes('cert_order')) {
+        await conn.query("ALTER TABLE certificates ADD COLUMN cert_order INT DEFAULT 0");
+        console.log("✅ Added 'cert_order' column to certificates");
+      }
+      if (!names.includes('images')) {
+        await conn.query("ALTER TABLE certificates ADD COLUMN images LONGTEXT");
+        console.log("✅ Added 'images' column to certificates");
+      }
+      if (!names.includes('pdf_url')) {
+        await conn.query("ALTER TABLE certificates ADD COLUMN pdf_url VARCHAR(1000) DEFAULT ''");
+        console.log("✅ Added 'pdf_url' column to certificates");
+      }
+    } catch (e) {
+      console.warn("⚠️ certificates column check:", e.message);
     }
 
     // ─── Default Seeding if empty ────────────────────────────

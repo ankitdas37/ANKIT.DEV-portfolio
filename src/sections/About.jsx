@@ -22,12 +22,18 @@ export default function About() {
   return (
     <section
       id="about"
-      className="relative pt-4 pb-12 md:py-20 bg-[#02050D] overflow-hidden"
+      className="relative pt-4 pb-12 md:py-20 bg-[#02050D] overflow-hidden section-contain"
       aria-label="About me"
     >
-      {/* Ambient Glows */}
-      <div className="absolute top-0 right-0 w-[800px] h-[800px] rounded-full bg-[#2563EB] opacity-5 blur-[150px] pointer-events-none" />
-      <div className="absolute bottom-0 left-0 w-[600px] h-[600px] rounded-full bg-[#7C3AED] opacity-5 blur-[120px] pointer-events-none" />
+      {/* Lightweight Ambient Radial Glows */}
+      <div 
+        className="absolute top-0 right-0 w-[600px] h-[600px] rounded-full pointer-events-none opacity-40"
+        style={{ background: "radial-gradient(circle, rgba(37,99,235,0.1) 0%, transparent 70%)" }}
+      />
+      <div 
+        className="absolute bottom-0 left-0 w-[500px] h-[500px] rounded-full pointer-events-none opacity-40"
+        style={{ background: "radial-gradient(circle, rgba(124,58,237,0.1) 0%, transparent 70%)" }}
+      />
       <div className="absolute inset-0 bg-grid-pattern opacity-20 pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">

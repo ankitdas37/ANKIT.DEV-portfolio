@@ -31,11 +31,14 @@ export default function Skills() {
   return (
     <section
       id="skills"
-      className="relative py-10 md:py-20 bg-[#050B16] overflow-hidden"
+      className="relative py-10 md:py-20 bg-[#050B16] overflow-hidden section-contain"
       aria-label="Skills"
     >
       {/* Background */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full bg-[#2563EB] opacity-[0.03] blur-[150px] pointer-events-none" />
+      <div 
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full pointer-events-none opacity-40"
+        style={{ background: "radial-gradient(circle, rgba(37,99,235,0.08) 0%, transparent 70%)" }}
+      />
       <div className="absolute inset-0 bg-grid-pattern opacity-20 pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

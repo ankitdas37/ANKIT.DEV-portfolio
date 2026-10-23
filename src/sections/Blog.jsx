@@ -14,10 +14,16 @@ export default function Blog() {
   const recent = blogPosts.slice(1, 4);
 
   return (
-    <section id="blog" className="relative py-10 md:py-20 bg-[#02050D] overflow-hidden">
+    <section id="blog" className="relative py-10 md:py-20 bg-[#02050D] overflow-hidden section-contain">
       {/* Ambient glows */}
-      <div className="absolute top-1/3 left-0 w-[400px] h-[400px] rounded-full bg-[#7C3AED] opacity-[0.04] blur-[150px] pointer-events-none" />
-      <div className="absolute bottom-0 right-0 w-[350px] h-[350px] rounded-full bg-[#2563EB] opacity-[0.04] blur-[130px] pointer-events-none" />
+      <div 
+        className="absolute top-1/3 left-0 w-[400px] h-[400px] rounded-full pointer-events-none opacity-40"
+        style={{ background: "radial-gradient(circle, rgba(124,58,237,0.08) 0%, transparent 70%)" }}
+      />
+      <div 
+        className="absolute bottom-0 right-0 w-[350px] h-[350px] rounded-full pointer-events-none opacity-40"
+        style={{ background: "radial-gradient(circle, rgba(37,99,235,0.08) 0%, transparent 70%)" }}
+      />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 

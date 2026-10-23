@@ -208,6 +208,9 @@ CREATE TABLE IF NOT EXISTS blog_posts (
     showOnHome TINYINT(1) DEFAULT 0,
     homeOrder INT DEFAULT 0,
     content LONGTEXT,
+    author LONGTEXT,
+    links LONGTEXT,
+    markdown LONGTEXT,
     hidden TINYINT(1) DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

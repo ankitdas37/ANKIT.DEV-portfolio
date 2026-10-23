@@ -4,14 +4,19 @@ import {
   Lock, LayoutDashboard, FolderGit2, Image, Award,
   MessageSquare, BookOpen, Plus, Trash2, LogOut,
   Eye, EyeOff, Save, Shield, ChevronRight, X, Edit2,
-  UploadCloud, Loader2, Tags, ArrowLeft, Folder, Info, UserCircle, Cpu, Star, ArrowUp, ArrowDown, FileText, Mail, SplitSquareHorizontal, GraduationCap, CheckCircle2, Share2, DownloadCloud,
-  Menu, ExternalLink, Users, UserPlus, Globe, Search, Sparkles, Check, CheckCircle
+  UploadCloud, Loader2, Tags, Tag, ArrowLeft, Folder, Info, UserCircle, Cpu, Star, ArrowUp, ArrowDown, FileText, Mail, SplitSquareHorizontal, GraduationCap, CheckCircle2, Share2, DownloadCloud,
+  Menu, ExternalLink, Users, UserPlus, Globe, Search, Sparkles, Check, CheckCircle,
+  Type, Sliders, Palette, ClipboardPaste, Maximize2, Table as TableIcon, Copy
 } from "lucide-react";
 import { GithubIcon, LinkedinIcon, InstagramIcon, XIcon } from "../components/SocialIcons";
 import { useData } from "../context/DataContext";
 import imageCompression from "browser-image-compression";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
+import mammoth from "mammoth";
+import TurndownService from "turndown";
+import { gfm } from "turndown-plugin-gfm";
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 
 const ADMIN_PASSWORD = "ankit@admin";
@@ -47,7 +52,123 @@ const TABS = [
 ];
 
 /* ─── Small reusable components ─────────────────────────── */
+/* ─── Modern Reusable Color Picker & Presets Controller ────────── */
+function ColorPickerControl({
+  label = "Color",
+  name,
+  value,
+  onChange,
+  presets = ["#3B82F6", "#7C3AED", "#10B981", "#06B6D4", "#F59E0B", "#EC4899", "#6366F1", "#EF4444"],
+}) {
+  // Safely extract string hex from value if it's an object or non-string
+  let rawColor = value;
+  if (rawColor && typeof rawColor === "object") {
+    rawColor = rawColor.target?.value || rawColor.value || "";
+  }
+  const currentColor = typeof rawColor === "string" && rawColor.trim() ? rawColor.trim() : "#3B82F6";
+  const isValidHex = /^#[0-9A-Fa-f]{6}$/i.test(currentColor);
+  const pickerValue = isValidHex ? currentColor : "#3B82F6";
+
+  const handleValChange = (valOrEvent) => {
+    let stringVal = "#3B82F6";
+    if (typeof valOrEvent === "string") {
+      stringVal = valOrEvent;
+    } else if (valOrEvent && valOrEvent.target && typeof valOrEvent.target.value === "string") {
+      stringVal = valOrEvent.target.value;
+    }
+
+    if (onChange) {
+      if (name) {
+        // Create an event object with toString so both (e) => e.target.value and (hex) => hex work seamlessly
+        const syntheticEvent = {
+          target: { name, value: stringVal },
+          name,
+          value: stringVal,
+          toString: () => stringVal,
+        };
+        onChange(syntheticEvent);
+      } else {
+        onChange(stringVal);
+      }
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      {label && (
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wider">{label}</label>
+          <span className="text-[10px] font-mono text-purple-400 font-bold uppercase">{typeof rawColor === 'string' ? rawColor : "Auto"}</span>
+        </div>
+      )}
+      <div className="space-y-1.5">
+        <div className="flex items-center gap-2">
+          {/* Color Preview Swatch Button that opens Native System Picker */}
+          <div className="relative group/color shrink-0">
+            <input
+              type="color"
+              value={pickerValue}
+              onChange={(e) => handleValChange(e.target.value)}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
+              title="Click to pick custom color"
+            />
+            <div
+              className="w-10 h-10 rounded-xl border border-white/20 shadow-lg flex items-center justify-center transition-all group-hover/color:scale-105 group-hover/color:border-white/40 cursor-pointer relative overflow-hidden"
+              style={{ backgroundColor: pickerValue }}
+            >
+              <div className="w-3 h-3 rounded-full bg-black/40 border border-white/40 shadow-sm" />
+            </div>
+          </div>
+
+          {/* Direct Hex Code Input */}
+          <input
+            type="text"
+            name={name}
+            value={typeof rawColor === "string" ? rawColor : ""}
+            onChange={(e) => handleValChange(e.target.value)}
+            placeholder="#3B82F6"
+            className="w-full px-3 py-2 rounded-xl bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] text-white font-mono text-xs uppercase focus:outline-none focus:border-[rgba(168,85,247,0.5)] transition-all"
+          />
+        </div>
+
+        {/* Quick Presets Swatches */}
+        <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+          {(Array.isArray(presets) ? presets : []).map((preset) => {
+            const presetStr = String(preset || "");
+            const isSelected = currentColor.toLowerCase() === presetStr.toLowerCase();
+            return (
+              <button
+                key={presetStr}
+                type="button"
+                onClick={() => handleValChange(presetStr)}
+                className={`w-5 h-5 rounded-md border transition-all ${
+                  isSelected
+                    ? "scale-115 border-white shadow-[0_0_8px_rgba(255,255,255,0.6)] ring-1 ring-white/60 z-10"
+                    : "border-white/20 hover:scale-110 opacity-75 hover:opacity-100"
+                }`}
+                style={{ backgroundColor: presetStr }}
+                title={`Select ${presetStr}`}
+              />
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Field({ label, name, value, onChange, type = "text", placeholder = "", rows = 3 }) {
+  if (type === "color") {
+    return (
+      <ColorPickerControl
+        label={label}
+        name={name}
+        value={value}
+        onChange={onChange}
+      />
+    );
+  }
+
   return (
     <div className="flex flex-col gap-1.5">
       <label className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wider">{label}</label>
@@ -2650,12 +2771,119 @@ function GalleryTab({ showToast }) {
 
 function CertificatesTab({ showToast }) {
   const { certificates, setCertificates, add, remove, edit } = useData();
-  const blank = { title: "", organization: "", date: "", color: "#10B981", category: "Programming", link: "", image: "", hidden: false, hours: "" };
+  const blank = { 
+    title: "", 
+    organization: "", 
+    date: "", 
+    color: "#10B981", 
+    category: "Programming", 
+    link: "", 
+    image: "", 
+    images: [], 
+    pdf_url: "", 
+    cert_order: 1, 
+    hidden: false, 
+    hours: "" 
+  };
   const [form, setForm] = useState(blank);
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [customMediaUrl, setCustomMediaUrl] = useState("");
+
+  // Helper to convert any URL (including Cloudinary PDF) to an image preview
+  const getCertPreview = (url) => {
+    if (!url || typeof url !== "string") return "";
+    const isPdf = url.toLowerCase().endsWith(".pdf") || url.toLowerCase().includes(".pdf?");
+    if (isPdf && url.includes("cloudinary.com")) {
+      let preview = url.replace(/\.pdf($|\?.*)/i, ".jpg$1");
+      if (!preview.includes("pg_1") && preview.includes("/upload/")) {
+        preview = preview.replace("/upload/", "/upload/pg_1,f_auto,q_auto/");
+      }
+      return preview;
+    }
+    return url;
+  };
+
+  // Sort certificates strictly by cert_order
+  const sortedCertificates = [...certificates].sort((a, b) => {
+    const orderA = a.cert_order !== undefined && a.cert_order !== null ? Number(a.cert_order) : 9999;
+    const orderB = b.cert_order !== undefined && b.cert_order !== null ? Number(b.cert_order) : 9999;
+    if (orderA !== orderB) return orderA - orderB;
+    return (new Date(b.created_at || 0)) - (new Date(a.created_at || 0));
+  });
 
   const onChange = (e) => setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
+
+  // Reordering: Move Up or Down
+  const moveCertificateOrder = async (index, direction) => {
+    if (direction === "up" && index === 0) return;
+    if (direction === "down" && index === sortedCertificates.length - 1) return;
+
+    const items = [...sortedCertificates];
+    const swapIndex = direction === "up" ? index - 1 : index + 1;
+
+    const temp = items[index];
+    items[index] = items[swapIndex];
+    items[swapIndex] = temp;
+
+    // Reassign continuous order 1..N
+    const updated = items.map((c, i) => ({
+      ...c,
+      cert_order: i + 1
+    }));
+
+    setCertificates(updated);
+
+    try {
+      const res = await apiFetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/certificates/reorder`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order: updated.map(c => ({ id: c.id, cert_order: c.cert_order })) })
+      });
+      if (res.ok) {
+        showToast("Certificate order updated!", "success");
+      } else {
+        showToast("Failed to save order", "error");
+      }
+    } catch (e) {
+      showToast("Error updating order", "error");
+    }
+  };
+
+  // Reordering: Set position directly by typing number
+  const handleSetCertificateOrder = async (fromIndex, targetOrder) => {
+    const target = parseInt(targetOrder, 10);
+    if (isNaN(target)) return;
+    const clamped = Math.max(1, Math.min(sortedCertificates.length, target));
+    const toIndex = clamped - 1;
+    if (fromIndex === toIndex) return;
+
+    const items = [...sortedCertificates];
+    const [moved] = items.splice(fromIndex, 1);
+    items.splice(toIndex, 0, moved);
+
+    const updated = items.map((c, i) => ({
+      ...c,
+      cert_order: i + 1
+    }));
+
+    setCertificates(updated);
+
+    try {
+      const res = await apiFetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/certificates/reorder`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order: updated.map(c => ({ id: c.id, cert_order: c.cert_order })) })
+      });
+      if (res.ok) {
+        showToast(`Moved "${moved.title}" to position #${clamped}!`, "success");
+      } else {
+        showToast("Failed to save order", "error");
+      }
+    } catch (e) {
+      showToast("Error updating order", "error");
+    }
+  };
 
   const handleToggleVisibility = (cert) => {
     const updated = { ...cert, hidden: !cert.hidden };
@@ -2663,32 +2891,155 @@ function CertificatesTab({ showToast }) {
     showToast(updated.hidden ? "Certificate hidden." : "Certificate is visible!", updated.hidden ? "warning" : "success");
   };
 
+  // Multiple media upload & management
+  const handleMediaUpload = (uploaded) => {
+    if (!uploaded) return;
+    const newItems = Array.isArray(uploaded) ? uploaded : [{ url: uploaded, name: "" }];
+    
+    setForm((prev) => {
+      let currentImages = Array.isArray(prev.images) ? [...prev.images] : (prev.image ? [prev.image] : []);
+      let updatedPdfUrl = prev.pdf_url;
+
+      newItems.forEach((item) => {
+        const itemUrl = typeof item === "string" ? item : item.url;
+        const itemName = typeof item === "object" ? item.name || "" : "";
+        const isPdf = itemUrl.toLowerCase().endsWith(".pdf") || itemName.toLowerCase().endsWith(".pdf") || itemUrl.toLowerCase().includes(".pdf?");
+
+        if (isPdf) {
+          if (!updatedPdfUrl) updatedPdfUrl = itemUrl;
+          const previewImg = getCertPreview(itemUrl);
+          if (!currentImages.includes(previewImg)) {
+            currentImages.push(previewImg);
+          }
+        } else {
+          if (!currentImages.includes(itemUrl)) {
+            currentImages.push(itemUrl);
+          }
+        }
+      });
+
+      const primaryCover = currentImages[0] || prev.image || "";
+      return {
+        ...prev,
+        images: currentImages,
+        image: primaryCover,
+        pdf_url: updatedPdfUrl
+      };
+    });
+    showToast("Media uploaded and preview generated!", "success");
+  };
+
+  const handleAddMediaUrl = () => {
+    const url = customMediaUrl.trim();
+    if (!url) return;
+    const isPdf = url.toLowerCase().endsWith(".pdf") || url.toLowerCase().includes(".pdf?");
+    const previewUrl = getCertPreview(url);
+
+    setForm((prev) => {
+      const currentImages = Array.isArray(prev.images) ? [...prev.images] : (prev.image ? [prev.image] : []);
+      if (!currentImages.includes(previewUrl)) {
+        currentImages.push(previewUrl);
+      }
+      return {
+        ...prev,
+        images: currentImages,
+        image: currentImages[0] || prev.image,
+        pdf_url: isPdf && !prev.pdf_url ? url : prev.pdf_url
+      };
+    });
+    setCustomMediaUrl("");
+    showToast(isPdf ? "PDF added and preview generated!" : "Image added!", "success");
+  };
+
+  const handleRemoveMedia = (indexToRemove) => {
+    setForm((prev) => {
+      const filtered = (prev.images || []).filter((_, idx) => idx !== indexToRemove);
+      return {
+        ...prev,
+        images: filtered,
+        image: filtered[0] || ""
+      };
+    });
+  };
+
+  const handleMakeCover = (index) => {
+    setForm((prev) => {
+      const images = [...(prev.images || [])];
+      if (index === 0 || index >= images.length) return prev;
+      const [item] = images.splice(index, 1);
+      images.unshift(item);
+      return {
+        ...prev,
+        images,
+        image: images[0]
+      };
+    });
+    showToast("Cover image set!", "success");
+  };
+
+  const handleMoveMedia = (fromIdx, direction) => {
+    setForm((prev) => {
+      const images = [...(prev.images || [])];
+      const toIdx = direction === "left" ? fromIdx - 1 : fromIdx + 1;
+      if (toIdx < 0 || toIdx >= images.length) return prev;
+      const temp = images[fromIdx];
+      images[fromIdx] = images[toIdx];
+      images[toIdx] = temp;
+      return {
+        ...prev,
+        images,
+        image: images[0]
+      };
+    });
+  };
+
   const handleSave = () => {
-    if (!form.title.trim()) return;
+    if (!form.title.trim()) {
+      showToast("Title is required", "warning");
+      return;
+    }
+    const imagesArray = Array.isArray(form.images) && form.images.length > 0 
+      ? form.images 
+      : (form.image ? [form.image] : []);
+    const primaryImage = form.image || imagesArray[0] || (form.pdf_url ? getCertPreview(form.pdf_url) : "");
+
     const processedForm = {
       ...form,
+      color: typeof form.color === "string" ? form.color : (form.color?.target?.value || "#10B981"),
+      image: primaryImage,
+      images: imagesArray,
+      cert_order: Number(form.cert_order) || (editingId ? form.cert_order : certificates.length + 1),
       category: typeof form.category === "string" ? form.category.split(',').map(c => c.trim()).filter(Boolean) : form.category
     };
 
     if (editingId) {
       edit(certificates, setCertificates, editingId, processedForm);
-      showToast("Certificate updated!", "success");
+      showToast("Certificate updated successfully!", "success");
     } else {
       add(certificates, setCertificates, processedForm);
-      showToast("Certificate added!", "success");
+      showToast("Certificate added to Home Page!", "success");
     }
-    setForm(blank); setEditingId(null); setOpen(false);
+    setForm(blank); 
+    setEditingId(null); 
+    setOpen(false);
   };
 
   const handleEdit = (c) => {
+    const rawImages = Array.isArray(c.images) && c.images.length > 0 
+      ? c.images 
+      : (c.image ? [c.image] : []);
+    
     setForm({ 
-      title: c.title, 
-      organization: c.organization, 
-      date: c.date, 
-      color: c.color || "#10B981", 
+      title: c.title || "", 
+      organization: c.organization || "", 
+      date: c.date || "", 
+      color: typeof c.color === "string" ? c.color : (c.color?.target?.value || "#10B981"), 
       category: Array.isArray(c.category) ? c.category.join(", ") : (c.category || ""), 
       link: c.link || "", 
-      image: c.image || "", 
+      image: c.image || rawImages[0] || "", 
+      images: rawImages,
+      pdf_url: c.pdf_url || (typeof c.image === "string" && c.image.toLowerCase().endsWith(".pdf") ? c.image : ""),
+      cert_order: c.cert_order !== undefined ? c.cert_order : (sortedCertificates.findIndex(x => x.id === c.id) + 1),
       hidden: c.hidden || false, 
       hours: c.hours || "" 
     });
@@ -2698,76 +3049,463 @@ function CertificatesTab({ showToast }) {
 
   return (
     <div className="space-y-6">
+      {/* Top Banner & Control Instructions */}
       <SectionCard title={`Certificates (${certificates.length})`} color="#10B981">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4 p-3 rounded-xl bg-[rgba(16,185,129,0.06)] border border-[rgba(16,185,129,0.2)] text-xs">
+          <div className="flex items-center gap-2 text-emerald-300">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="font-semibold">Home Page Order:</span> Use the <span className="font-mono font-bold text-white"># Number</span> or <span className="font-mono font-bold text-white">▲ / ▼ Arrows</span> to choose which certificate appears 1st, 2nd, 3rd, etc.
+          </div>
+          <button
+            onClick={() => {
+              setOpen(true);
+              setEditingId(null);
+              setForm({ ...blank, cert_order: certificates.length + 1 });
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-bold transition-all shadow-md ml-auto"
+          >
+            <Plus className="w-3.5 h-3.5" /> Add Certificate
+          </button>
+        </div>
+
+        {/* Certificate List with Order Controls */}
         <div className="space-y-3">
-          {certificates.map((c) => (
-            <div key={c.id} className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl border transition-all ${c.hidden ? "bg-[rgba(245,158,11,0.03)] border-[rgba(245,158,11,0.15)] opacity-70" : "bg-[rgba(255,255,255,0.03)] border-[rgba(255,255,255,0.05)]"}`}>
-              <div className="flex items-center gap-3 min-w-0">
-                {c.image ? (
-                  <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 border border-[rgba(255,255,255,0.1)]">
-                    <img src={c.image} alt={c.title} className="w-full h-full object-cover" />
+          {sortedCertificates.map((c, i) => {
+            const previewUrl = getCertPreview(c.image || (c.images && c.images[0]) || c.pdf_url);
+            const isPdf = Boolean(c.pdf_url) || (typeof c.image === "string" && c.image.toLowerCase().endsWith(".pdf"));
+            const imageCount = Array.isArray(c.images) && c.images.length > 0 ? c.images.length : (c.image ? 1 : 0);
+
+            return (
+              <div 
+                key={c.id} 
+                className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl border transition-all ${
+                  c.hidden 
+                    ? "bg-[rgba(245,158,11,0.03)] border-[rgba(245,158,11,0.15)] opacity-70" 
+                    : "bg-[rgba(255,255,255,0.03)] border-[rgba(255,255,255,0.05)] hover:border-[rgba(255,255,255,0.12)]"
+                }`}
+              >
+                <div className="flex items-center gap-3.5 min-w-0">
+                  {/* Up / Down Reorder Buttons */}
+                  <div className="flex flex-col gap-0.5 items-center justify-center shrink-0">
+                    <button 
+                      onClick={() => moveCertificateOrder(i, 'up')} 
+                      disabled={i === 0} 
+                      title="Move Up (Show earlier on Home)" 
+                      className="text-[#64748B] hover:text-emerald-400 disabled:opacity-20 p-1 transition-colors"
+                    >
+                      <ArrowUp className="w-3.5 h-3.5" />
+                    </button>
+                    <button 
+                      onClick={() => moveCertificateOrder(i, 'down')} 
+                      disabled={i === sortedCertificates.length - 1} 
+                      title="Move Down (Show later on Home)" 
+                      className="text-[#64748B] hover:text-emerald-400 disabled:opacity-20 p-1 transition-colors"
+                    >
+                      <ArrowDown className="w-3.5 h-3.5" />
+                    </button>
                   </div>
-                ) : (
-                  <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: c.color }} />
-                )}
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-semibold text-white truncate">{c.title}</p>
-                    {c.hidden && <span className="text-[10px] px-2 py-0.5 rounded-full bg-[rgba(245,158,11,0.15)] text-amber-400 font-bold">HIDDEN</span>}
+
+                  {/* Position Badge / Direct Number Input */}
+                  <div className="relative flex items-center shrink-0 group/num" title="Type a number to change display position (1 = 1st)">
+                    <span className="absolute left-2 text-[11px] font-bold text-emerald-400 pointer-events-none select-none">#</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max={sortedCertificates.length}
+                      defaultValue={i + 1}
+                      key={`cert-order-${c.id}-${i + 1}`}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') e.currentTarget.blur();
+                      }}
+                      onBlur={(e) => {
+                        const val = parseInt(e.target.value, 10);
+                        if (!isNaN(val) && val !== i + 1) {
+                          handleSetCertificateOrder(i, val);
+                        } else {
+                          e.target.value = i + 1;
+                        }
+                      }}
+                      className="w-12 h-8 pl-4 pr-1 text-center rounded-lg bg-[rgba(16,185,129,0.12)] hover:bg-[rgba(16,185,129,0.2)] focus:bg-[rgba(16,185,129,0.3)] border border-[rgba(16,185,129,0.3)] focus:border-emerald-400 text-emerald-400 focus:text-white font-mono font-bold text-xs outline-none transition-all shadow-[0_0_10px_rgba(16,185,129,0.15)] focus:ring-1 focus:ring-emerald-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none cursor-text"
+                    />
                   </div>
-                  <p className="text-xs text-[#64748B]">{c.organization} · {c.date}</p>
+
+                  {/* Visual Image / PDF Thumbnail Preview */}
+                  {previewUrl ? (
+                    <div className="relative w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 border border-[rgba(255,255,255,0.12)] bg-[#02050D] shadow-inner group/thumb">
+                      <img 
+                        src={previewUrl} 
+                        alt={c.title} 
+                        className="w-full h-full object-cover" 
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                        }}
+                      />
+                      {isPdf && (
+                        <span className="absolute bottom-0 inset-x-0 bg-red-600/90 text-white text-[8px] font-bold text-center py-0.5 tracking-wider uppercase">
+                          PDF
+                        </span>
+                      )}
+                      {imageCount > 1 && !isPdf && (
+                        <span className="absolute top-0.5 right-0.5 bg-black/80 text-white text-[8px] font-bold px-1 rounded">
+                          +{imageCount}
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 border border-[rgba(255,255,255,0.1)]" style={{ background: `${c.color || '#10B981'}20` }}>
+                      <Award className="w-5 h-5" style={{ color: c.color || '#10B981' }} />
+                    </div>
+                  )}
+
+                  {/* Title & Info */}
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm font-semibold text-white truncate">{c.title}</p>
+                      
+                      {/* Order indicator */}
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-[rgba(16,185,129,0.12)] text-emerald-400 font-mono font-bold border border-[rgba(16,185,129,0.25)]">
+                        {i === 0 ? "1st on Home" : i === 1 ? "2nd on Home" : i === 2 ? "3rd on Home" : `#${i + 1} on Home`}
+                      </span>
+
+                      {/* PDF / Multi-image badges */}
+                      {isPdf && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-[rgba(239,68,68,0.15)] text-red-400 font-bold border border-[rgba(239,68,68,0.3)] flex items-center gap-1">
+                          <FileText className="w-2.5 h-2.5" /> PDF Document
+                        </span>
+                      )}
+
+                      {imageCount > 1 && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-[rgba(168,85,247,0.15)] text-purple-400 font-bold border border-[rgba(168,85,247,0.3)] flex items-center gap-1">
+                          <Image className="w-2.5 h-2.5" /> {imageCount} Photos
+                        </span>
+                      )}
+
+                      {c.hidden && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-[rgba(245,158,11,0.15)] text-amber-400 font-bold border border-[rgba(245,158,11,0.3)]">
+                          HIDDEN
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-[#64748B] mt-0.5">
+                      {c.organization} · {c.date} {c.hours ? `· ${c.hours} hrs` : ""}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Row Actions */}
+                <div className="flex gap-2 items-center flex-wrap self-end sm:self-center">
+                  {c.link && (
+                    <a 
+                      href={c.link} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="p-2 rounded-lg bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.1)] text-[#94A3B8] hover:text-white transition-colors"
+                      title="Open Certificate Link"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </a>
+                  )}
+                  <VisibilityBtn hidden={c.hidden} onClick={() => handleToggleVisibility(c)} />
+                  <EditBtn onClick={() => handleEdit(c)} />
+                  <DeleteBtn onClick={() => { remove(certificates, setCertificates, c.id); showToast("Certificate removed!", "error"); }} />
                 </div>
               </div>
-              <div className="flex gap-2 items-center flex-wrap">
-                <VisibilityBtn hidden={c.hidden} onClick={() => handleToggleVisibility(c)} />
-                <EditBtn onClick={() => handleEdit(c)} />
-                <DeleteBtn onClick={() => { remove(certificates, setCertificates, c.id); showToast("Certificate removed!", "error"); }} />
-              </div>
-            </div>
-          ))}
-          {certificates.length === 0 && <p className="text-center text-[#475569] text-sm py-6">No certificates.</p>}
+            );
+          })}
+          {certificates.length === 0 && (
+            <p className="text-center text-[#475569] text-sm py-8">No certificates added yet.</p>
+          )}
         </div>
       </SectionCard>
 
+      {/* Add / Edit Form Modal Card */}
       <SectionCard title={editingId ? "Edit Certificate" : "Add Certificate"} color="#06B6D4">
-        <button onClick={() => { setOpen(o => !o); if(editingId){ setEditingId(null); setForm(blank); } }} className="flex items-center gap-2 text-sm font-semibold text-[#A855F7] mb-4">
-          {open ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />} {open ? "Cancel" : "Add certificate"}
+        <button 
+          onClick={() => { 
+            setOpen(o => !o); 
+            if (editingId) { 
+              setEditingId(null); 
+              setForm(blank); 
+            } 
+          }} 
+          className="flex items-center gap-2 text-sm font-semibold text-[#A855F7] mb-4 hover:opacity-80 transition-opacity"
+        >
+          {open ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />} {open ? "Close Form" : "Add New Certificate"}
         </button>
+
         {open && (
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div className="sm:col-span-2">
-              <Field label="Title *" name="title" value={form.title} onChange={onChange} placeholder="Responsive Web Design Certificate" />
-            </div>
-            <Field label="Organization" name="organization" value={form.organization} onChange={onChange} placeholder="freeCodeCamp" />
-            <Field label="Date" name="date" value={form.date} onChange={onChange} placeholder="2025" />
-            <Field label="Category" name="category" value={form.category} onChange={onChange} placeholder="Programming, Web Development" />
-            <Field label="Color" name="color" value={form.color} onChange={onChange} type="color" />
-            
-            <div className="sm:col-span-2 grid sm:grid-cols-2 gap-4">
-              <Field label="Hours (e.g. 50)" name="hours" value={form.hours || ""} onChange={onChange} type="number" placeholder="50" />
+          <div className="space-y-6">
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="sm:col-span-2">
+                <Field label="Certificate Title *" name="title" value={form.title} onChange={onChange} placeholder="Full Stack Web Development Professional Certificate" />
+              </div>
+              <Field label="Issuing Organization" name="organization" value={form.organization} onChange={onChange} placeholder="Coursera, freeCodeCamp, Udemy, University" />
+              <Field label="Issue Date / Duration" name="date" value={form.date} onChange={onChange} placeholder="2026 or Jan 2026" />
+              <Field label="Category (comma-separated)" name="category" value={form.category} onChange={onChange} placeholder="Programming, Full Stack, AI" />
+              
+              {/* Home Display Position */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wider">Image (Optional)</label>
+                <label className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wider">
+                  Home Page Display Order (1st, 2nd...)
+                </label>
                 <div className="flex items-center gap-2">
-                  <input type="text" name="image" value={form.image} onChange={onChange} placeholder="/src/assets/... (Optional)" className="flex-1 px-4 py-3 rounded-xl bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] text-white placeholder:text-[#475569] focus:outline-none focus:border-[rgba(168,85,247,0.5)] text-sm transition-all" />
-                  <CloudinaryUpload onUpload={(url) => setForm(f => ({ ...f, image: url }))} />
+                  <span className="text-xs font-bold font-mono text-emerald-400 bg-[rgba(16,185,129,0.1)] px-3 py-3 rounded-xl border border-[rgba(16,185,129,0.2)]">
+                    Position #{form.cert_order || 1}
+                  </span>
+                  <input
+                    type="number"
+                    min="1"
+                    name="cert_order"
+                    value={form.cert_order || ""}
+                    onChange={onChange}
+                    placeholder="1"
+                    className="flex-1 px-4 py-3 rounded-xl bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] text-white focus:outline-none focus:border-emerald-400 text-sm"
+                  />
                 </div>
+              </div>
+
+              {/* Learning Hours */}
+              <Field label="Learning Hours (Optional)" name="hours" value={form.hours || ""} onChange={onChange} type="number" placeholder="50" />
+
+              {/* Accent Color Picker */}
+              <div className="sm:col-span-2">
+                <ColorPickerControl
+                  label="Certificate Card Accent Color"
+                  name="color"
+                  value={typeof form.color === "string" ? form.color : (form.color?.target?.value || "#10B981")}
+                  onChange={(val) => {
+                    const hex = typeof val === "string" ? val : (val?.target?.value || "#10B981");
+                    setForm(f => ({ ...f, color: hex }));
+                  }}
+                  presets={["#10B981", "#06B6D4", "#7C3AED", "#2563EB", "#F59E0B", "#EC4899", "#8B5CF6", "#14B8A6"]}
+                />
+              </div>
+
+              {/* Public Verification / Credential URL */}
+              <div className="sm:col-span-2">
+                <Field label="Credential URL / Verification Link" name="link" value={form.link} onChange={onChange} placeholder="https://coursera.org/verify/... or https://freecodecamp.org/..." />
               </div>
             </div>
 
-            <div className="sm:col-span-2">
-              <Field label="Certificate URL" name="link" value={form.link} onChange={onChange} placeholder="https://freecodecamp.org/..." />
+            {/* ─── Media Manager: Multiple Images & PDF Support ─── */}
+            <div className="p-5 rounded-2xl bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.08)] space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[rgba(255,255,255,0.06)] pb-3">
+                <div>
+                  <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                    <Image className="w-4 h-4 text-emerald-400" />
+                    Certificate Media: Multiple Images & PDF Document
+                  </h4>
+                  <p className="text-xs text-[#94A3B8] mt-0.5">
+                    Upload multiple images or attach any PDF. PDFs automatically generate a high-res image preview for the homepage!
+                  </p>
+                </div>
+
+                {/* Bulk Uploader (Images + PDFs) */}
+                <div className="flex items-center gap-2 shrink-0">
+                  <CloudinaryUpload
+                    label="Upload Images or PDF"
+                    multiple={true}
+                    onUpload={handleMediaUpload}
+                  />
+                </div>
+              </div>
+
+              {/* Manual URL Input */}
+              <div className="flex flex-col sm:flex-row gap-2">
+                <input
+                  type="text"
+                  placeholder="Paste direct Image URL or PDF URL..."
+                  value={customMediaUrl}
+                  onChange={(e) => setCustomMediaUrl(e.target.value)}
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] text-white placeholder:text-[#475569] text-xs focus:outline-none focus:border-emerald-400"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddMediaUrl}
+                  className="px-4 py-2.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Add URL
+                </button>
+              </div>
+
+              {/* Dedicated PDF Document Field */}
+              <div className="p-3.5 rounded-xl bg-[rgba(239,68,68,0.04)] border border-[rgba(239,68,68,0.15)] space-y-2">
+                <label className="text-xs font-bold text-red-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <FileText className="w-3.5 h-3.5" /> Original PDF Document (Optional)
+                </label>
+                <div className="flex flex-col sm:flex-row items-center gap-2">
+                  <input
+                    type="text"
+                    name="pdf_url"
+                    value={form.pdf_url || ""}
+                    onChange={onChange}
+                    placeholder="https://.../certificate.pdf (Uploaded PDF or Google Drive PDF link)"
+                    className="flex-1 w-full px-4 py-2.5 rounded-xl bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] text-white placeholder:text-[#475569] text-xs focus:outline-none focus:border-red-400"
+                  />
+                  <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+                    <CloudinaryUpload
+                      label="Upload PDF"
+                      multiple={false}
+                      onUpload={(url) => {
+                        const preview = getCertPreview(url);
+                        setForm(f => {
+                          const currentImgs = Array.isArray(f.images) ? [...f.images] : (f.image ? [f.image] : []);
+                          if (!currentImgs.includes(preview)) currentImgs.unshift(preview);
+                          return {
+                            ...f,
+                            pdf_url: url,
+                            image: preview,
+                            images: currentImgs
+                          };
+                        });
+                        showToast("PDF attached and image preview generated!", "success");
+                      }}
+                    />
+                    {form.pdf_url && (
+                      <a
+                        href={form.pdf_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3 py-2 rounded-xl bg-red-500/20 text-red-300 hover:text-white border border-red-500/30 text-xs font-semibold flex items-center gap-1 transition-colors"
+                      >
+                        <ExternalLink className="w-3.5 h-3.5" /> Open
+                      </a>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Attached Media Gallery / List */}
+              {Array.isArray(form.images) && form.images.length > 0 && (
+                <div className="space-y-2 pt-2">
+                  <label className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wider block">
+                    Attached Media Gallery ({form.images.length} items) - Top item is Cover
+                  </label>
+                  
+                  <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
+                    {form.images.map((imgUrl, idx) => {
+                      const isCover = idx === 0;
+                      const isPdf = imgUrl.toLowerCase().includes(".pdf") || (form.pdf_url && imgUrl === getCertPreview(form.pdf_url));
+                      
+                      return (
+                        <div 
+                          key={idx} 
+                          className={`relative rounded-xl overflow-hidden border transition-all flex flex-col group ${
+                            isCover 
+                              ? "border-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.3)] bg-emerald-500/10" 
+                              : "border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.03)]"
+                          }`}
+                        >
+                          {/* Image preview */}
+                          <div className="relative aspect-[4/3] w-full overflow-hidden bg-black/60">
+                            <img 
+                              src={imgUrl} 
+                              alt={`Certificate media ${idx + 1}`} 
+                              className="w-full h-full object-cover" 
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                              }}
+                            />
+                            {/* Badges */}
+                            <div className="absolute top-1 left-1 flex flex-col gap-1">
+                              {isCover && (
+                                <span className="bg-emerald-500 text-black text-[9px] font-black px-1.5 py-0.5 rounded shadow">
+                                  ★ COVER
+                                </span>
+                              )}
+                              {isPdf && (
+                                <span className="bg-red-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow">
+                                  PDF
+                                </span>
+                              )}
+                            </div>
+                            <span className="absolute top-1 right-1 bg-black/70 text-white text-[9px] font-mono px-1 rounded">
+                              #{idx + 1}
+                            </span>
+                          </div>
+
+                          {/* Quick controls */}
+                          <div className="flex items-center justify-between p-1 bg-black/80 gap-1">
+                            {!isCover && (
+                              <button
+                                type="button"
+                                onClick={() => handleMakeCover(idx)}
+                                title="Make this the Cover image"
+                                className="text-[10px] text-emerald-400 hover:text-white px-1.5 py-0.5 rounded hover:bg-emerald-500/20 font-semibold transition-colors"
+                              >
+                                Set Cover
+                              </button>
+                            )}
+                            <div className="flex items-center gap-0.5 ml-auto">
+                              {idx > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleMoveMedia(idx, "left")}
+                                  title="Move Left"
+                                  className="p-1 text-[#94A3B8] hover:text-white"
+                                >
+                                  ◀
+                                </button>
+                              )}
+                              {idx < form.images.length - 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleMoveMedia(idx, "right")}
+                                  title="Move Right"
+                                  className="p-1 text-[#94A3B8] hover:text-white"
+                                >
+                                  ▶
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveMedia(idx)}
+                                title="Remove Image"
+                                className="p-1 text-red-400 hover:text-red-300"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
 
-            <div className="sm:col-span-2 flex items-center justify-between p-4 rounded-xl bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)]">
-              <div><p className="text-sm font-semibold text-white">Hide Certificate</p><p className="text-xs text-[#64748B] mt-0.5">Hides this certificate from the public site</p></div>
-              <button type="button" onClick={() => setForm(f => ({ ...f, hidden: !f.hidden }))} className={`relative w-12 h-6 rounded-full transition-all border ${form.hidden ? "bg-[rgba(239,68,68,0.2)] border-[rgba(239,68,68,0.4)]" : "bg-[rgba(16,185,129,0.2)] border-[rgba(16,185,129,0.4)]"}`}>
+            {/* Visibility Toggle */}
+            <div className="flex items-center justify-between p-4 rounded-xl bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)]">
+              <div>
+                <p className="text-sm font-semibold text-white">Hide Certificate</p>
+                <p className="text-xs text-[#64748B] mt-0.5">Hides this certificate from the public site</p>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setForm(f => ({ ...f, hidden: !f.hidden }))} 
+                className={`relative w-12 h-6 rounded-full transition-all border ${
+                  form.hidden ? "bg-[rgba(239,68,68,0.2)] border-[rgba(239,68,68,0.4)]" : "bg-[rgba(16,185,129,0.2)] border-[rgba(16,185,129,0.4)]"
+                }`}
+              >
                 <span className={`absolute top-0.5 w-5 h-5 rounded-full transition-all bg-${form.hidden ? "red" : "emerald"}-400 shadow-md ${form.hidden ? "left-0.5" : "left-6"}`} />
               </button>
             </div>
 
-            <div className="sm:col-span-2 flex justify-end">
-              <button onClick={handleSave} className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#10B981] to-[#06B6D4] text-white text-sm font-bold hover:opacity-90 transition-opacity">
-                <Save className="w-4 h-4" /> {editingId ? "Save Certificate" : "Add Certificate"}
+            {/* Save Buttons */}
+            <div className="flex justify-end gap-3">
+              <button 
+                type="button"
+                onClick={() => { setOpen(false); setEditingId(null); setForm(blank); }}
+                className="px-5 py-2.5 rounded-xl border border-[rgba(255,255,255,0.1)] text-[#94A3B8] hover:text-white text-sm font-semibold transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleSave} 
+                className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#10B981] to-[#06B6D4] text-white text-sm font-bold hover:opacity-90 transition-opacity shadow-lg shadow-emerald-500/20"
+              >
+                <Save className="w-4 h-4" /> {editingId ? "Save Changes" : "Publish Certificate"}
               </button>
             </div>
           </div>
@@ -2929,677 +3667,2651 @@ function TestimonialsTab({ showToast }) {
   );
 }
 
-/* ─── Blog Tab ───────────────────────────────────────────────── */
-function BlogTab({ showToast }) {
-  const { blogPosts, setBlogPosts, add, edit, remove } = useData();
-  const blank = { title: "", excerpt: "", tag: "Tutorial", tagColor: "#10B981", readTime: "5 min read", date: "", emoji: "📝", slug: "", image: "" };
-  const [form, setForm] = useState(blank);
-  const [open, setOpen] = useState(false);
-  const [editingPostId, setEditingPostId] = useState(null);
-  const onChange = (e) => setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
-
-  const handleAdd = async () => {
-    if (!form.title.trim()) {
-      showToast("Title is required", "warning");
-      return;
-    }
-    const slug = form.slug || form.title.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
-    
-    try {
-      if (editingPostId) {
-        const post = blogPosts.find(p => p.id === editingPostId);
-        await edit(blogPosts, setBlogPosts, editingPostId, { ...(post || {}), ...form, slug }, 'blog');
-        showToast("Blog post updated!", "success");
-      } else {
-        await add(blogPosts, setBlogPosts, { ...form, slug, content: [] }, 'blog');
-        showToast("Blog post added!", "success");
-      }
-      setForm(blank); setOpen(false); setEditingPostId(null);
-    } catch (err) {
-      console.error(err);
-      showToast(err.message || "Failed to save blog post", "error");
-    }
+/* ─── Live Mac-Style Code Block Component for Markdown Preview ──────── */
+function LiveCodeBlock({ codeText, lang }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = () => {
+    navigator.clipboard.writeText(codeText);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
-
   return (
-    <div className="space-y-6">
-      <SectionCard title={`Blog Posts (${blogPosts.length})`} color="#06B6D4">
-        <div className="space-y-3">
-          {[...blogPosts].sort((a, b) => {
-            const orderA = parseInt(a.homeOrder) || 999;
-            const orderB = parseInt(b.homeOrder) || 999;
-            return orderA - orderB;
-          }).map((p) => (
-            <div
-              key={p.id}
-              className={`flex items-center justify-between gap-4 p-4 rounded-xl border transition-all duration-200 ${
-                p.hidden
-                  ? "bg-[rgba(255,255,255,0.01)] border-[rgba(255,255,255,0.03)] opacity-60"
-                  : "bg-[rgba(255,255,255,0.03)] border-[rgba(255,255,255,0.05)]"
-              }`}
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <span className="text-2xl flex-shrink-0" style={{ filter: p.hidden ? 'grayscale(1)' : 'none' }}>{p.emoji}</span>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-semibold text-white truncate">{p.title}</p>
-                    {p.hidden && (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[rgba(245,158,11,0.15)] text-amber-400 border border-[rgba(245,158,11,0.2)] flex-shrink-0">
-                        Hidden
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-[#64748B]">{p.tag} · {p.date} · {p.readTime}</p>
-                  {p.content && p.content.length > 0 && (
-                    <p className="text-xs text-[#10B981] mt-0.5">{p.content.length} content blocks</p>
-                  )}
-                </div>
-              </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <select
-                  value={p.homeOrder || ''}
-                  onChange={async (e) => {
-                    const val = parseInt(e.target.value) || 0;
-                    try {
-                      await edit(blogPosts, setBlogPosts, p.id, { homeOrder: val }, 'blog');
-                      showToast("Order updated!", "success");
-                    } catch (err) {
-                      showToast("Failed to update order", "error");
-                    }
-                  }}
-                  className="bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] rounded-lg px-2 py-1.5 focus:border-[#A855F7] text-xs text-white outline-none cursor-pointer hover:bg-[rgba(255,255,255,0.08)] transition-colors"
-                  title="Home Page Position"
-                >
-                  <option value="" className="bg-[#0f172a] text-white">Auto Order</option>
-                  <option value="1" className="bg-[#0f172a] text-white">1st (Featured)</option>
-                  <option value="2" className="bg-[#0f172a] text-white">2nd</option>
-                  <option value="3" className="bg-[#0f172a] text-white">3rd</option>
-                  <option value="4" className="bg-[#0f172a] text-white">4th</option>
-                  <option value="5" className="bg-[#0f172a] text-white">5th</option>
-                  <option value="6" className="bg-[#0f172a] text-white">6th</option>
-                </select>
-                <button
-                  onClick={async () => {
-                    try {
-                      const nextVal = !p.showOnHome;
-                      await edit(blogPosts, setBlogPosts, p.id, { showOnHome: nextVal }, 'blog');
-                      showToast(nextVal ? "Added to Home" : "Removed from Home", "success");
-                    } catch (err) {
-                      showToast("Failed to toggle Home display", "error");
-                    }
-                  }}
-                  className={`px-2 py-1.5 rounded-lg text-xs font-bold transition-colors ${p.showOnHome ? 'bg-[rgba(16,185,129,0.15)] text-[#10B981]' : 'bg-[rgba(255,255,255,0.05)] text-[#94A3B8] hover:bg-[rgba(255,255,255,0.1)]'}`}
-                  title="Toggle display on Home Page"
-                >
-                  Home
-                </button>
-                <button
-                  onClick={() => {
-                    setForm(p);
-                    setEditingPostId(p.id);
-                    setOpen(true);
-                    setTimeout(() => {
-                      document.getElementById("add-blog-form")?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }, 100);
-                  }}
-                  className="p-1.5 rounded-lg text-[#06B6D4] hover:text-white hover:bg-[rgba(6,182,212,0.1)] transition-all"
-                  title="Edit Metadata"
-                >
-                  <Edit2 className="w-4 h-4" />
-                </button>
-                <VisibilityBtn
-                  hidden={p.hidden}
-                  onClick={async () => {
-                    try {
-                      const nextHidden = !p.hidden;
-                      await edit(blogPosts, setBlogPosts, p.id, { hidden: nextHidden }, 'blog');
-                      showToast(nextHidden ? "Post hidden from blog." : "Post is now visible!", "success");
-                    } catch (err) {
-                      showToast("Failed to update visibility", "error");
-                    }
-                  }}
-                />
-                <DeleteBtn onClick={() => { remove(blogPosts, setBlogPosts, p.id, 'blog'); showToast("Post removed!"); }} />
-              </div>
-            </div>
-          ))}
-          {blogPosts.length === 0 && <p className="text-center text-[#475569] text-sm py-6">No blog posts.</p>}
+    <div className="my-5 rounded-2xl overflow-hidden border border-white/10 bg-[#060a14] shadow-2xl">
+      <div className="flex items-center justify-between px-4 py-2 bg-white/[0.03] border-b border-white/[0.06]">
+        <div className="flex items-center gap-2">
+          <span className="w-2.5 h-2.5 rounded-full bg-[#FF5F56] inline-block" />
+          <span className="w-2.5 h-2.5 rounded-full bg-[#FFBD2E] inline-block" />
+          <span className="w-2.5 h-2.5 rounded-full bg-[#27C93F] inline-block" />
+          <span className="ml-2 font-mono text-[10px] font-semibold tracking-wider text-slate-400 uppercase">
+            {lang || "code"}
+          </span>
         </div>
-      </SectionCard>
-
-      <div id="add-blog-form">
-        <SectionCard title={editingPostId ? "Edit Blog Post Info" : "Add Blog Post"} color="#7C3AED">
-          <button onClick={() => {
-            if (open && editingPostId) {
-              setForm(blank);
-              setEditingPostId(null);
-              setOpen(false);
-            } else {
-              setOpen((o) => !o);
-            }
-          }} className="flex items-center gap-2 text-sm font-semibold text-[#A855F7] mb-4">
-            {open ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />} {open ? "Cancel" : "Add post"}
-          </button>
-        {open && (
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div className="sm:col-span-2">
-              <Field label="Title *"   name="title"    value={form.title}    onChange={onChange} placeholder="My awesome article" />
-            </div>
-            <div className="sm:col-span-2">
-              <Field label="Excerpt"   name="excerpt"  value={form.excerpt}  onChange={onChange} type="textarea" placeholder="Short description..." />
-            </div>
-            <Field label="Tag"         name="tag"      value={form.tag}      onChange={onChange} placeholder="Tutorial" />
-            <Field label="Tag Color"   name="tagColor" value={form.tagColor} onChange={onChange} type="color" />
-            <div className="sm:col-span-2">
-              <Field label="Cover Image URL (Optional)" name="image" value={form.image || ""} onChange={onChange} placeholder="https://example.com/image.jpg (leave blank to use Emoji)" />
-            </div>
-            <Field label="Emoji"       name="emoji"    value={form.emoji}    onChange={onChange} placeholder="📝" />
-            <Field label="Read Time"   name="readTime" value={form.readTime} onChange={onChange} placeholder="5 min read" />
-            <Field label="Date"        name="date"     value={form.date}     onChange={onChange} placeholder="Aug 2025" />
-            <Field label="Slug (auto)" name="slug"     value={form.slug}     onChange={onChange} placeholder="my-awesome-article" />
-            <div className="sm:col-span-2 flex justify-end">
-              <button onClick={handleAdd} className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#06B6D4] text-white text-sm font-bold hover:opacity-90 transition-opacity">
-                {editingPostId ? <Save className="w-4 h-4" /> : <Plus className="w-4 h-4" />} {editingPostId ? "Save Changes" : "Add Post"}
-              </button>
-            </div>
-          </div>
-        )}
-        </SectionCard>
+        <button
+          type="button"
+          onClick={handleCopy}
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-mono text-slate-400 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] transition-all"
+        >
+          {copied ? (
+            <>
+              <Check className="w-3 h-3 text-emerald-400" />
+              <span className="text-emerald-400 font-bold">Copied!</span>
+            </>
+          ) : (
+            <>
+              <Copy className="w-3 h-3" />
+              <span>Copy</span>
+            </>
+          )}
+        </button>
       </div>
-
-      {/* Rich Content Editor */}
-      <BlogContentEditor blogPosts={blogPosts} setBlogPosts={setBlogPosts} showToast={showToast} />
+      <div className="p-4 overflow-x-auto text-xs sm:text-[13px] font-mono leading-relaxed text-slate-200">
+        <pre className="whitespace-pre"><code>{codeText}</code></pre>
+      </div>
     </div>
   );
 }
 
-/* ─── Rich Blog Content Editor ───────────────────────────────── */
-function BlogContentEditor({ blogPosts, setBlogPosts, showToast }) {
-  const { edit } = useData();
-  const [selectedPostId, setSelectedPostId] = useState(null);
-  const [blocks, setBlocks] = useState([]);
-  const [addingType, setAddingType] = useState(null);
-  const [newBlock, setNewBlock] = useState({});
-  const [editingIdx, setEditingIdx] = useState(null);
-  const [saving, setSaving] = useState(false);
+/* ─── Smart Markdown Conversion Engine (ChatGPT / Word / Web Docs) ─── */
+function getTurndownInstance() {
+  const td = new TurndownService({
+    headingStyle: 'atx',
+    hr: '---',
+    bulletListMarker: '-',
+    codeBlockStyle: 'fenced',
+    emDelimiter: '*',
+  });
 
-  const selectedPost = blogPosts.find((p) => p.id === selectedPostId);
+  if (typeof gfm === 'function') {
+    td.use(gfm);
+  }
 
-  const loadPost = (post) => {
-    setSelectedPostId(post.id);
-    setBlocks(post.content ? [...post.content] : []);
-    setAddingType(null);
-    setNewBlock({});
-    setEditingIdx(null);
+  // Preserve styled spans (for custom colors and highlights)
+  td.addRule('styledSpan', {
+    filter: function (node) {
+      if (node.nodeName !== 'SPAN') return false;
+      const style = node.getAttribute('style') || '';
+      const color = node.getAttribute('color') || '';
+      return Boolean(style.includes('color') || style.includes('background') || color);
+    },
+    replacement: function (content, node) {
+      const style = node.getAttribute('style');
+      const color = node.getAttribute('color');
+      if (style) {
+        const cleanStyle = style
+          .split(';')
+          .map(s => s.trim())
+          .filter(s => s.startsWith('color:') || s.startsWith('background-color:') || s.startsWith('background:') || s.startsWith('font-weight:'))
+          .join('; ');
+        if (cleanStyle) {
+          return `<span style="${cleanStyle}">${content}</span>`;
+        }
+      } else if (color) {
+        return `<span style="color: ${color}">${content}</span>`;
+      }
+      return content;
+    }
+  });
+
+  // Preserve font color tags
+  td.addRule('fontColor', {
+    filter: 'font',
+    replacement: function (content, node) {
+      const color = node.getAttribute('color');
+      return color ? `<span style="color: ${color}">${content}</span>` : content;
+    }
+  });
+
+  // Preserve mark, kbd, u, sub, sup
+  td.addRule('inlineHighlights', {
+    filter: ['mark', 'kbd', 'sub', 'sup', 'u'],
+    replacement: function (content, node) {
+      const tag = node.nodeName.toLowerCase();
+      return `<${tag}>${content}</${tag}>`;
+    }
+  });
+
+  return td;
+}
+
+function isRichHtmlContent(html) {
+  if (!html || typeof html !== 'string') return false;
+  return (
+    /<table[\s>]/i.test(html) ||
+    /<(pre|code)[\s>]/i.test(html) ||
+    /<h[1-6][\s>]/i.test(html) ||
+    /<(ul|ol|li)[\s>]/i.test(html) ||
+    /<span[^>]+style=["'][^"']*(color|background)/i.test(html) ||
+    /mso-|MsoNormal|OfficeDocument/i.test(html) ||
+    /hljs|language-|dark:bg-|bg-token/i.test(html) ||
+    /<blockquote[\s>]/i.test(html) ||
+    /<p[\s>]/i.test(html)
+  );
+}
+
+function extractChatGPTJsonToMarkdown(data) {
+  if (!data) return "";
+  if (data.choices?.[0]?.message?.content) {
+    return data.choices[0].message.content;
+  }
+  if (Array.isArray(data.messages)) {
+    return data.messages.map(m => {
+      const roleName = m.role === 'assistant' ? '🤖 Response' : (m.role === 'user' ? '👤 Prompt' : m.role);
+      const text = typeof m.content === 'string' ? m.content : JSON.stringify(m.content);
+      return `### ${roleName}\n\n${text}\n`;
+    }).join('\n---\n\n');
+  }
+  if (data.mapping && typeof data.mapping === 'object') {
+    const nodes = Object.values(data.mapping);
+    const messages = nodes
+      .map(n => n.message)
+      .filter(m => m && m.content && m.content.parts && m.content.parts.length > 0 && m.author?.role !== 'system')
+      .map(m => {
+        const role = m.author?.role === 'assistant' ? '🤖 Response' : '👤 Prompt';
+        const text = m.content.parts.join('\n');
+        return `### ${role}\n\n${text}\n`;
+      });
+    const title = data.title ? `# 💬 ${data.title}\n\n` : '';
+    return title + messages.join('\n---\n\n');
+  }
+  if (Array.isArray(data)) {
+    const hasRoles = data.every(item => item && (item.role || item.content));
+    if (hasRoles) {
+      return data.map(m => `### ${m.role || 'Note'}\n\n${m.content || ''}\n`).join('\n---\n\n');
+    }
+  }
+  return "";
+}
+
+/* ─── Blog Tab (Enhanced with Author Control, Smart Paste, Styling & Beside Split View) ────── */
+function BlogTab({ showToast }) {
+  const { blogPosts = [], setBlogPosts, add, edit, remove, teamProfiles = [] } = useData();
+
+  const blankAuthor = {
+    isTeam: false,
+    teamId: "",
+    name: "",
+    role: "",
+    avatar: "",
+    bio: "",
+    github: "",
+    linkedin: "",
+    twitter: "",
+    email: ""
   };
 
-  const saveBlocks = async () => {
-    if (!selectedPostId) {
-      showToast("Please select a post first", "warning");
+  const blankStyling = {
+    fontSize: "standard",    // "compact" | "standard" | "large" | "xlarge"
+    fontFamily: "inter",     // "inter" | "space" | "merriweather" | "mono"
+    layoutWidth: "standard", // "standard" | "wide" | "ultrawide"
+    lineHeight: "comfortable", // "compact" | "comfortable" | "relaxed"
+  };
+
+  const blank = {
+    title: "",
+    excerpt: "",
+    tags: ["Tutorial"],
+    tag: "Tutorial",
+    tagColor: "#10B981",
+    readTime: "5 min read",
+    date: "",
+    emoji: "📝",
+    slug: "",
+    image: "",
+    markdown: "",
+    content: [],
+    author: { ...blankAuthor },
+    authors: [],
+    demo: "",
+    github: "",
+    docsUrl: "",
+    youtubeUrl: "",
+    recommendedPosts: [],
+    links: [],
+    styling: { ...blankStyling },
+    showOnHome: false,
+    homeOrder: 0,
+    hidden: false
+  };
+
+  const [form, setForm] = useState(blank);
+  const [open, setOpen] = useState(false);
+  const [editingPostId, setEditingPostId] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [tagFilter, setTagFilter] = useState("all");
+  const [customTagInput, setCustomTagInput] = useState("");
+  const [showProfilePicker, setShowProfilePicker] = useState(false);
+  const [pickerSearch, setPickerSearch] = useState("");
+  const [showRecPicker, setShowRecPicker] = useState(false);
+  const [recSearch, setRecSearch] = useState("");
+  const [expandedAuthorIdx, setExpandedAuthorIdx] = useState(null);
+  const [editorMode, setEditorMode] = useState("split"); // "split" | "edit" | "preview"
+  const [importingFile, setImportingFile] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const fileInputRef = useRef(null);
+  const editorTextareaRef = useRef(null);
+
+  const onChange = (e) => setForm((f) => ({ ...f, [e.target.name]: e.target.value }));
+
+  // Helper to insert markdown or text at cursor position in textarea
+  const insertTextAtCursor = (textToInsert) => {
+    const textarea = editorTextareaRef.current;
+    if (!textarea) {
+      setForm(f => ({ ...f, markdown: (f.markdown || '') + '\n\n' + textToInsert }));
+      return;
+    }
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const curVal = form.markdown || '';
+    const newVal = curVal.substring(0, start) + textToInsert + curVal.substring(end);
+    setForm(f => ({ ...f, markdown: newVal }));
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + textToInsert.length, start + textToInsert.length);
+    }, 50);
+  };
+
+  // Helper to insert markdown syntax at cursor position
+  const insertMarkdownSyntax = (prefix, suffix = '', defaultText = '') => {
+    const textarea = editorTextareaRef.current;
+    if (!textarea) return;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const currentVal = form.markdown || '';
+    const selectedText = currentVal.substring(start, end) || defaultText;
+    const replacement = `${prefix}${selectedText}${suffix}`;
+    const newVal = currentVal.substring(0, start) + replacement + currentVal.substring(end);
+    setForm(f => ({ ...f, markdown: newVal }));
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + prefix.length, start + prefix.length + selectedText.length);
+    }, 50);
+  };
+
+  // Smart Paste Handler: intercepts paste from ChatGPT, Word, Google Docs or Web pages
+  const handleSmartPaste = (e) => {
+    const clipboardData = e.clipboardData;
+    if (!clipboardData) return;
+
+    const html = clipboardData.getData('text/html');
+    const text = clipboardData.getData('text/plain');
+
+    // 1. Detect if user pasted ChatGPT JSON export
+    if (text && text.trim().startsWith('{') && text.trim().endsWith('}')) {
+      try {
+        const parsed = JSON.parse(text);
+        const converted = extractChatGPTJsonToMarkdown(parsed);
+        if (converted) {
+          e.preventDefault();
+          insertTextAtCursor(converted);
+          showToast("🤖 Auto-detected ChatGPT JSON conversation & formatted article!", "success");
+          return;
+        }
+      } catch {
+        // Not JSON, continue
+      }
+    }
+
+    // 2. Detect if clipboard contains rich HTML (ChatGPT, Word .docx, Web Docs)
+    if (html && isRichHtmlContent(html)) {
+      e.preventDefault();
+      try {
+        const td = getTurndownInstance();
+        let md = td.turndown(html);
+        md = md.replace(/\n{4,}/g, '\n\n');
+        insertTextAtCursor(md);
+        showToast("✨ Converted ChatGPT / Word formatted text into Markdown with tables & colors!", "success");
+        return;
+      } catch (err) {
+        console.warn("Smart paste fallback:", err);
+      }
+    }
+  };
+
+  // Toolbar button for reading clipboard
+  const handleClipboardButtonClick = async () => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.read) {
+        const items = await navigator.clipboard.read();
+        for (const item of items) {
+          if (item.types.includes('text/html')) {
+            const blob = await item.getType('text/html');
+            const html = await blob.text();
+            if (isRichHtmlContent(html)) {
+              const td = getTurndownInstance();
+              const md = td.turndown(html);
+              insertTextAtCursor(md);
+              showToast("✨ Converted clipboard content (tables & formatting) into Markdown!", "success");
+              return;
+            }
+          }
+          if (item.types.includes('text/plain')) {
+            const blob = await item.getType('text/plain');
+            const text = await blob.text();
+            insertTextAtCursor(text);
+            showToast("Pasted text from clipboard!", "info");
+            return;
+          }
+        }
+      }
+      const text = await navigator.clipboard.readText();
+      if (text) {
+        insertTextAtCursor(text);
+        showToast("Pasted clipboard text!", "info");
+      }
+    } catch {
+      showToast("Press Ctrl+V inside the editor to paste formatted content!", "info");
+    }
+  };
+
+  // Helper to parse Markdown into legacy content blocks for backwards compatibility
+  const markdownToBlocks = (md) => {
+    if (!md || typeof md !== 'string') return [];
+    const lines = md.split('\n');
+    const blocks = [];
+    let currentPara = [];
+    let inCode = false;
+    let codeLang = '';
+    let codeLines = [];
+    let listItems = [];
+
+    const flushPara = () => {
+      if (currentPara.length > 0) {
+        blocks.push({ type: "paragraph", text: currentPara.join('\n') });
+        currentPara = [];
+      }
+    };
+
+    const flushList = () => {
+      if (listItems.length > 0) {
+        blocks.push({ type: "list", items: [...listItems] });
+        listItems = [];
+      }
+    };
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      if (line.trim().startsWith('```')) {
+        if (inCode) {
+          blocks.push({ type: "code", lang: codeLang || "javascript", text: codeLines.join('\n') });
+          codeLines = [];
+          inCode = false;
+          codeLang = '';
+        } else {
+          flushPara();
+          flushList();
+          inCode = true;
+          codeLang = line.trim().replace(/^```/, '').trim();
+        }
+        continue;
+      }
+
+      if (inCode) {
+        codeLines.push(line);
+        continue;
+      }
+
+      if (line.startsWith('# ') || line.startsWith('## ')) {
+        flushPara();
+        flushList();
+        blocks.push({ type: "heading", text: line.replace(/^#{1,2}\s+/, '').trim() });
+        continue;
+      }
+      if (line.startsWith('### ')) {
+        flushPara();
+        flushList();
+        blocks.push({ type: "subheading", text: line.replace(/^###\s+/, '').trim() });
+        continue;
+      }
+
+      if (line.trim() === '---' || line.trim() === '***') {
+        flushPara();
+        flushList();
+        blocks.push({ type: "divider" });
+        continue;
+      }
+
+      if (line.startsWith('> ')) {
+        flushPara();
+        flushList();
+        blocks.push({ type: "quote", text: line.replace(/^>\s+/, '').trim() });
+        continue;
+      }
+
+      const imgMatch = line.match(/^!\[(.*?)\]\((.*?)\)/);
+      if (imgMatch) {
+        flushPara();
+        flushList();
+        blocks.push({ type: "image", caption: imgMatch[1], src: imgMatch[2] });
+        continue;
+      }
+
+      if (line.trim().match(/^[-*•]\s+/)) {
+        flushPara();
+        listItems.push(line.trim().replace(/^[-*•]\s+/, ''));
+        continue;
+      } else {
+        flushList();
+      }
+
+      if (!line.trim()) {
+        flushPara();
+        continue;
+      }
+
+      currentPara.push(line);
+    }
+
+    flushPara();
+    flushList();
+    if (inCode && codeLines.length > 0) {
+      blocks.push({ type: "code", lang: codeLang || "javascript", text: codeLines.join('\n') });
+    }
+
+    return blocks;
+  };
+
+  // Import Word (.docx / .doc), Markdown (.md / .txt), HTML or ChatGPT .json files
+  const handleDocImport = async (file) => {
+    if (!file) return;
+    setImportingFile(true);
+    try {
+      const ext = file.name.split('.').pop().toLowerCase();
+      let importedText = "";
+
+      if (ext === 'docx' || ext === 'doc') {
+        const arrayBuffer = await file.arrayBuffer();
+        // Convert to HTML first to preserve tables and colors, then run through Turndown
+        const htmlRes = await mammoth.convertToHtml({ arrayBuffer });
+        if (htmlRes.value) {
+          const td = getTurndownInstance();
+          importedText = td.turndown(htmlRes.value);
+        } else {
+          const mdRes = await mammoth.convertToMarkdown({ arrayBuffer });
+          importedText = mdRes.value || "";
+        }
+      } else if (ext === 'html' || ext === 'htm') {
+        const htmlContent = await file.text();
+        const td = getTurndownInstance();
+        importedText = td.turndown(htmlContent);
+      } else if (ext === 'json') {
+        const rawText = await file.text();
+        try {
+          const parsed = JSON.parse(rawText);
+          importedText = extractChatGPTJsonToMarkdown(parsed) || rawText;
+        } catch {
+          importedText = rawText;
+        }
+      } else {
+        // .md, .markdown, .txt
+        importedText = await file.text();
+      }
+
+      if (!importedText.trim()) {
+        showToast("The selected file contains no readable text.", "warning");
+        return;
+      }
+
+      // Auto-extract title if blank
+      const lines = importedText.split('\n').map(l => l.trim()).filter(Boolean);
+      let detectedTitle = "";
+      const h1Line = lines.find(l => l.startsWith('# '));
+      if (h1Line) {
+        detectedTitle = h1Line.replace(/^#\s+/, '').trim();
+      } else if (lines.length > 0) {
+        detectedTitle = lines[0].replace(/^[#*_\s]+/, '').trim();
+      }
+
+      // Auto-extract excerpt if blank
+      const firstPara = lines.find(l => !l.startsWith('#') && !l.startsWith('-') && !l.startsWith('*') && !l.startsWith('>') && !l.startsWith('```') && !l.startsWith('|') && l.length > 20);
+
+      // Auto-calculate read time
+      const wordCount = importedText.trim().split(/\s+/).length;
+      const calcMinutes = Math.max(1, Math.round(wordCount / 200));
+      const autoReadTime = `${calcMinutes} min read`;
+
+      setForm(prev => ({
+        ...prev,
+        title: prev.title || detectedTitle || file.name.replace(/\.[^/.]+$/, ""),
+        slug: prev.slug || (detectedTitle ? detectedTitle.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') : ""),
+        excerpt: prev.excerpt || (firstPara ? firstPara.substring(0, 180) + '...' : ''),
+        readTime: prev.readTime === "5 min read" ? autoReadTime : prev.readTime,
+        markdown: importedText,
+      }));
+
+      showToast(`🎉 Imported "${file.name}" (${wordCount.toLocaleString()} words) with tables & formatting!`, "success");
+    } catch (err) {
+      console.error("Doc import error:", err);
+      showToast("Failed to read file: " + (err.message || "Unknown error"), "error");
+    } finally {
+      setImportingFile(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  // Calculate current words and estimated read time
+  const currentWordCount = (form.markdown || '').trim() ? (form.markdown || '').trim().split(/\s+/).length : 0;
+  const estimatedReadTime = `${Math.max(1, Math.round(currentWordCount / 200))} min read`;
+
+  // Multiple links helpers
+  const handleAddLink = (initial = { label: "", url: "", type: "demo" }) => {
+    setForm(f => ({ ...f, links: [...(f.links || []), initial] }));
+  };
+
+  const handleUpdateLink = (idx, field, value) => {
+    setForm(f => {
+      const arr = [...(f.links || [])];
+      arr[idx] = { ...arr[idx], [field]: value };
+      return { ...f, links: arr };
+    });
+  };
+
+  const handleRemoveLink = (idx) => {
+    setForm(f => {
+      const arr = [...(f.links || [])];
+      arr.splice(idx, 1);
+      return { ...f, links: arr };
+    });
+  };
+
+  const handleMoveLink = (idx, direction) => {
+    const currentLinks = [...(form.links || [])];
+    const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= currentLinks.length) return;
+    const temp = currentLinks[idx];
+    currentLinks[idx] = currentLinks[targetIdx];
+    currentLinks[targetIdx] = temp;
+    setForm(f => ({ ...f, links: currentLinks }));
+  };
+
+  // Multiple authors helpers (using team profiles or custom authors)
+  const handleToggleTeamAuthor = (tp) => {
+    const currentList = Array.isArray(form.authors) ? [...form.authors] : [];
+    const existsIdx = currentList.findIndex(
+      a => (a.teamId && String(a.teamId) === String(tp.id)) || (a.name && a.name.toLowerCase() === tp.name?.toLowerCase())
+    );
+    if (existsIdx >= 0) {
+      currentList.splice(existsIdx, 1);
+      const nextAuthor = currentList[0] || { ...blankAuthor };
+      setForm(f => ({ ...f, authors: currentList, author: nextAuthor }));
+      showToast(`Removed ${tp.name} from article authors`, "info");
+    } else {
+      const newAuthor = {
+        isTeam: true,
+        teamId: tp.id,
+        name: tp.name || "",
+        role: tp.role || "",
+        avatar: tp.photo || "",
+        email: tp.email || "",
+        github: tp.github || "",
+        linkedin: tp.linkedin || "",
+        twitter: tp.twitter || "",
+        bio: tp.bio || `Specializing in ${tp.role || "software engineering"}.`
+      };
+      const nextAuthors = [...currentList, newAuthor];
+      setForm(f => ({ ...f, authors: nextAuthors, author: nextAuthors[0] }));
+      showToast(`Added ${tp.name} as article author!`, "success");
+    }
+  };
+
+  const handleAddManualAuthor = () => {
+    const newAuthor = {
+      ...blankAuthor,
+      isTeam: false,
+      name: "",
+      role: "Contributor",
+    };
+    const nextAuthors = [...(form.authors || []), newAuthor];
+    setForm(f => ({ ...f, authors: nextAuthors, author: nextAuthors[0] }));
+    setExpandedAuthorIdx(nextAuthors.length - 1);
+  };
+
+  const handleRemoveAuthor = (idx) => {
+    const currentList = [...(form.authors || [])];
+    currentList.splice(idx, 1);
+    const nextAuthor = currentList[0] || { ...blankAuthor };
+    setForm(f => ({ ...f, authors: currentList, author: nextAuthor }));
+    if (expandedAuthorIdx === idx) setExpandedAuthorIdx(null);
+  };
+
+  const handleMakeLeadAuthor = (idx) => {
+    if (idx === 0) return;
+    const currentList = [...(form.authors || [])];
+    const [picked] = currentList.splice(idx, 1);
+    currentList.unshift(picked);
+    setForm(f => ({ ...f, authors: currentList, author: currentList[0] }));
+    showToast(`Set ${picked.name || "author"} as lead author!`, "success");
+  };
+
+  const handleMoveAuthorOrder = (idx, direction) => {
+    const currentList = [...(form.authors || [])];
+    const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= currentList.length) return;
+    const temp = currentList[idx];
+    currentList[idx] = currentList[targetIdx];
+    currentList[targetIdx] = temp;
+    setForm(f => ({ ...f, authors: currentList, author: currentList[0] }));
+  };
+
+  const handleUpdateAuthor = (idx, field, value) => {
+    setForm(f => {
+      const currentList = [...(f.authors || [])];
+      currentList[idx] = { ...currentList[idx], [field]: value };
+      return {
+        ...f,
+        authors: currentList,
+        author: idx === 0 ? currentList[0] : f.author
+      };
+    });
+  };
+
+  // Recommended articles helpers
+  const handleToggleRecommendedPost = (postItem) => {
+    const key = postItem.slug || String(postItem.id);
+    const currentRecs = Array.isArray(form.recommendedPosts) ? [...form.recommendedPosts] : [];
+    const exists = currentRecs.some(k => String(k) === String(key) || String(k) === String(postItem.id) || String(k) === postItem.slug);
+    let nextRecs;
+    if (exists) {
+      nextRecs = currentRecs.filter(k => String(k) !== String(key) && String(k) !== String(postItem.id) && String(k) !== postItem.slug);
+      showToast(`Removed "${postItem.title}" from recommendations`, "info");
+    } else {
+      nextRecs = [...currentRecs, key];
+      showToast(`Added "${postItem.title}" to recommendations!`, "success");
+    }
+    setForm(f => ({ ...f, recommendedPosts: nextRecs }));
+  };
+
+  const handleRemoveRecommendedPost = (targetKey) => {
+    setForm(f => ({
+      ...f,
+      recommendedPosts: (f.recommendedPosts || []).filter(k => String(k) !== String(targetKey))
+    }));
+  };
+
+  const handleMoveRecommendedPost = (idx, direction) => {
+    const currentRecs = [...(form.recommendedPosts || [])];
+    const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= currentRecs.length) return;
+    const temp = currentRecs[idx];
+    currentRecs[idx] = currentRecs[targetIdx];
+    currentRecs[targetIdx] = temp;
+    setForm(f => ({ ...f, recommendedPosts: currentRecs }));
+  };
+
+  // Helper to extract array of tags from any post or object
+  const getPostTags = (p) => {
+    if (!p) return [];
+    if (Array.isArray(p.tags) && p.tags.length > 0) return p.tags.map(t => String(t).trim()).filter(Boolean);
+    if (typeof p.tag === "string" && p.tag.trim()) {
+      return p.tag.split(",").map(t => t.trim()).filter(Boolean);
+    }
+    return [];
+  };
+
+  // Resolved tags for currently open form
+  const currentFormTags = Array.isArray(form.tags) && form.tags.length > 0
+    ? form.tags
+    : (typeof form.tag === "string" && form.tag.trim() ? form.tag.split(",").map(t => t.trim()).filter(Boolean) : []);
+
+  // Multiple Tags Helpers
+  const handleAddTag = (tagName) => {
+    const trimmed = (tagName || "").trim().replace(/^#+/, "");
+    if (!trimmed) return;
+    if (currentFormTags.some(t => t.toLowerCase() === trimmed.toLowerCase())) {
+      showToast(`Tag "${trimmed}" is already added`, "info");
+      return;
+    }
+    const updated = [...currentFormTags, trimmed];
+    setForm(f => ({ ...f, tags: updated, tag: updated.join(", ") }));
+    setCustomTagInput("");
+  };
+
+  const handleToggleTag = (tagName) => {
+    const trimmed = (tagName || "").trim();
+    if (!trimmed) return;
+    const exists = currentFormTags.some(t => t.toLowerCase() === trimmed.toLowerCase());
+    let updated;
+    if (exists) {
+      updated = currentFormTags.filter(t => t.toLowerCase() !== trimmed.toLowerCase());
+    } else {
+      updated = [...currentFormTags, trimmed];
+    }
+    setForm(f => ({ ...f, tags: updated, tag: updated.join(", ") }));
+  };
+
+  const handleRemoveTag = (tagToRemove) => {
+    const updated = currentFormTags.filter(t => t !== tagToRemove);
+    setForm(f => ({ ...f, tags: updated, tag: updated.join(", ") }));
+  };
+
+  const handleCustomTagKeyDown = (e) => {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      handleAddTag(customTagInput);
+    }
+  };
+
+  // Save handler
+  const handleSave = async () => {
+    if (!form.title.trim()) {
+      showToast("Article Title is required!", "warning");
       return;
     }
     setSaving(true);
+    const postSlug = form.slug || form.title.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+
+    // Generate legacy content blocks so old renderers still work
+    const generatedBlocks = (form.markdown && form.markdown.trim())
+      ? markdownToBlocks(form.markdown)
+      : (form.content || []);
+
+    const cleanLinks = (form.links || []).filter(l => l && typeof l.url === 'string' && l.url.trim());
+    const cleanTags = currentFormTags.length > 0 ? currentFormTags : ["Tutorial"];
+    const cleanAuthors = (form.authors || []).filter(a => a && (a.name?.trim() || a.teamId));
+    const primaryAuthor = cleanAuthors[0] || form.author || { ...blankAuthor };
+    const cleanRecs = Array.isArray(form.recommendedPosts) ? form.recommendedPosts.filter(Boolean) : [];
+
+    const payload = {
+      ...form,
+      tags: cleanTags,
+      tag: cleanTags.join(", "),
+      slug: postSlug,
+      author: primaryAuthor,
+      authors: cleanAuthors.length > 0 ? cleanAuthors : [primaryAuthor],
+      links: cleanLinks,
+      recommendedPosts: cleanRecs,
+      demo: form.demo || "",
+      github: form.github || "",
+      docsUrl: form.docsUrl || "",
+      youtubeUrl: form.youtubeUrl || "",
+      styling: form.styling || blankStyling,
+      markdown: form.markdown || "",
+      content: generatedBlocks,
+      image: form.image || "",
+      showOnHome: Boolean(form.showOnHome),
+      homeOrder: parseInt(form.homeOrder) || 0,
+      hidden: Boolean(form.hidden),
+    };
+
     try {
-      const post = blogPosts.find((p) => p.id === selectedPostId);
-      await edit(blogPosts, setBlogPosts, selectedPostId, { ...(post || {}), content: blocks }, 'blog');
-      showToast("Content blocks saved to database!", "success");
+      if (editingPostId) {
+        await edit(blogPosts, setBlogPosts, editingPostId, payload, 'blog');
+        showToast("Blog article updated successfully!", "success");
+      } else {
+        await add(blogPosts, setBlogPosts, payload, 'blog');
+        showToast("New blog article published!", "success");
+      }
+      setForm(blank);
+      setEditingPostId(null);
+      setOpen(false);
     } catch (err) {
-      console.error(err);
-      showToast(err.message || "Failed to save content", "error");
+      console.error("Save error:", err);
+      showToast(err.message || "Failed to save blog article", "error");
     } finally {
       setSaving(false);
     }
   };
 
-  const moveBlock = (idx, dir) => {
-    const arr = [...blocks];
-    const swapIdx = idx + dir;
-    if (swapIdx < 0 || swapIdx >= arr.length) return;
-    [arr[idx], arr[swapIdx]] = [arr[swapIdx], arr[idx]];
-    setBlocks(arr);
-  };
-
-  const deleteBlock = (idx) => {
-    setBlocks((b) => b.filter((_, i) => i !== idx));
-  };
-
-  const openAdd = (type) => {
-    if (type === "divider") {
-      setBlocks((b) => [...b, { type: "divider" }]);
-      return;
+  // Open edit mode for a post
+  const handleEditClick = (p) => {
+    let initialMarkdown = p.markdown || "";
+    if (!initialMarkdown && Array.isArray(p.content) && p.content.length > 0) {
+      initialMarkdown = p.content.map(b => {
+        if (b.type === "heading") return `## ${b.text}\n`;
+        if (b.type === "subheading") return `### ${b.text}\n`;
+        if (b.type === "quote") return `> ${b.text}\n`;
+        if (b.type === "code") return `\`\`\`${b.lang || 'javascript'}\n${b.text}\n\`\`\`\n`;
+        if (b.type === "image") return `![${b.caption || 'image'}](${b.src})\n`;
+        if (b.type === "list") return (b.items || []).map(i => `- ${i}`).join('\n') + '\n';
+        if (b.type === "divider") return `---\n`;
+        return `${b.text || ''}\n`;
+      }).join('\n');
     }
-    setAddingType(type);
-    setEditingIdx(null);
-    setNewBlock(
-      type === "list"    ? { items: [""] } :
-      type === "image"   ? { src: "", caption: "" } :
-      type === "quote"   ? { text: "", author: "" } :
-      type === "code"    ? { text: "", lang: "javascript" } :
-      type === "richtext"? { html: "" } :
-      { text: "" }
-    );
-  };
 
-  const commitBlock = () => {
-    if (!addingType) return;
-    if ((addingType === "paragraph" || addingType === "heading" || addingType === "subheading" || addingType === "quote" || addingType === "code") && !newBlock.text?.trim()) return;
-    if (addingType === "image" && !newBlock.src?.trim()) return;
-    if (addingType === "list" && !(newBlock.items || []).some(i => i.trim())) return;
-    if (addingType === "richtext" && !newBlock.html?.trim()) return;
-    if (editingIdx !== null) {
-      setBlocks(b => b.map((blk, i) => i === editingIdx ? { type: addingType, ...newBlock } : blk));
-      setEditingIdx(null);
-    } else {
-      setBlocks((b) => [...b, { type: addingType, ...newBlock }]);
+    let postAuthor = p.author;
+    if (typeof postAuthor === 'string') {
+      try { postAuthor = JSON.parse(postAuthor); } catch { postAuthor = null; }
     }
-    setAddingType(null);
-    setNewBlock({});
-  };
+    const resolvedAuthor = postAuthor || { ...blankAuthor };
 
-  const editBlock = (idx) => {
-    const b = blocks[idx];
-    setAddingType(b.type);
-    setNewBlock(b);
-    setEditingIdx(idx);
+    let postAuthors = p.authors;
+    if (typeof postAuthors === 'string') {
+      try { postAuthors = JSON.parse(postAuthors); } catch { postAuthors = []; }
+    }
+    let resolvedAuthors = Array.isArray(postAuthors) && postAuthors.length > 0 ? postAuthors : [];
+    if (resolvedAuthors.length === 0 && resolvedAuthor?.name) {
+      resolvedAuthors = [resolvedAuthor];
+    }
+
+    let postLinks = p.links;
+    if (typeof postLinks === 'string') {
+      try { postLinks = JSON.parse(postLinks); } catch { postLinks = []; }
+    }
+    const resolvedLinks = Array.isArray(postLinks) ? postLinks : [];
+
+    let postRecs = p.recommendedPosts;
+    if (typeof postRecs === 'string') {
+      try { postRecs = JSON.parse(postRecs); } catch { postRecs = []; }
+    }
+    const resolvedRecs = Array.isArray(postRecs) ? postRecs : [];
+
+    let postStyling = p.styling;
+    if (typeof postStyling === 'string') {
+      try { postStyling = JSON.parse(postStyling); } catch { postStyling = null; }
+    }
+    const resolvedStyling = {
+      ...blankStyling,
+      ...(postStyling || {})
+    };
+
+    const resolvedTags = getPostTags(p);
+    const initialTags = resolvedTags.length > 0 ? resolvedTags : (p.tag ? [p.tag] : ["Tutorial"]);
+
+    setForm({
+      ...blank,
+      ...p,
+      tags: initialTags,
+      tag: initialTags.join(", "),
+      markdown: initialMarkdown,
+      content: p.content || [],
+      author: resolvedAuthor,
+      authors: resolvedAuthors,
+      links: resolvedLinks,
+      recommendedPosts: resolvedRecs,
+      demo: p.demo || p.demoUrl || "",
+      github: p.github || p.githubUrl || "",
+      docsUrl: p.docsUrl || "",
+      youtubeUrl: p.youtubeUrl || p.videoUrl || "",
+      styling: resolvedStyling,
+      image: p.image || "",
+      showOnHome: Boolean(p.showOnHome),
+      homeOrder: parseInt(p.homeOrder) || 0,
+      hidden: Boolean(p.hidden),
+    });
+
+    setEditingPostId(p.id);
+    setOpen(true);
     setTimeout(() => {
-      document.getElementById("content-editor-form")?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 100);
+      document.getElementById("blog-editor-workspace")?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 120);
   };
 
-  const toggleHideBlock = (idx) => {
-    setBlocks(b => b.map((blk, i) => i === idx ? { ...blk, hidden: !blk.hidden } : blk));
+  const handleCancel = () => {
+    setForm(blank);
+    setEditingPostId(null);
+    setOpen(false);
   };
 
-  const handleImageUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  // Reordering posts
+  const movePostOrder = async (index, direction) => {
+    if (direction === 'up' && index === 0) return;
+    if (direction === 'down' && index === blogPosts.length - 1) return;
+
+    const items = [...blogPosts];
+    const swapIndex = direction === 'up' ? index - 1 : index + 1;
+    const temp = items[index];
+    items[index] = items[swapIndex];
+    items[swapIndex] = temp;
+
+    const updated = items.map((item, i) => ({
+      ...item,
+      homeOrder: i + 1
+    }));
+
+    setBlogPosts(updated);
     try {
-      const comp = await import("browser-image-compression");
-      const compressed = await comp.default(file, { maxSizeMB: 0.5, maxWidthOrHeight: 1200, useWebWorker: true });
-      const reader = new FileReader();
-      reader.onload = (ev) => setNewBlock((nb) => ({ ...nb, src: ev.target.result }));
-      reader.readAsDataURL(compressed);
+      await edit(blogPosts, setBlogPosts, items[index].id, { homeOrder: swapIndex + 1 }, 'blog');
+      await edit(blogPosts, setBlogPosts, items[swapIndex].id, { homeOrder: index + 1 }, 'blog');
+      showToast("Order updated!", "success");
     } catch {
-      const reader = new FileReader();
-      reader.onload = (ev) => setNewBlock((nb) => ({ ...nb, src: ev.target.result }));
-      reader.readAsDataURL(file);
+      showToast("Error updating order", "error");
     }
   };
 
-  // Inline image upload handler for richtext editor
-  const handleRichImageUpload = async (e, editorRef) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    let dataUrl;
-    try {
-      const comp = await import("browser-image-compression");
-      const compressed = await comp.default(file, { maxSizeMB: 0.5, maxWidthOrHeight: 1200, useWebWorker: true });
-      dataUrl = await new Promise(res => { const r = new FileReader(); r.onload = ev => res(ev.target.result); r.readAsDataURL(compressed); });
-    } catch {
-      dataUrl = await new Promise(res => { const r = new FileReader(); r.onload = ev => res(ev.target.result); r.readAsDataURL(file); });
-    }
-    if (editorRef && editorRef.current) editorRef.current.focus();
-    document.execCommand('insertImage', false, dataUrl);
-    if (editorRef && editorRef.current) setNewBlock(nb => ({ ...nb, html: editorRef.current.innerHTML }));
-  };
-
-  const BLOCK_TYPES = [
-    { type: "richtext",   label: "Rich Text",   icon: "Aa",  color: "#EC4899" },
-    { type: "paragraph",  label: "Paragraph",   icon: "¶",   color: "#94A3B8" },
-    { type: "heading",    label: "Heading",      icon: "H2",  color: "#A855F7" },
-    { type: "subheading", label: "Subheading",   icon: "H3",  color: "#7C3AED" },
-    { type: "image",      label: "Image",        icon: "🖼️",  color: "#10B981" },
-    { type: "quote",      label: "Quote",        icon: "\u201c",  color: "#F59E0B" },
-    { type: "code",       label: "Code Block",   icon: "</>", color: "#06B6D4" },
-    { type: "list",       label: "Bullet List",  icon: "•",   color: "#2563EB" },
-    { type: "divider",    label: "Divider",      icon: "—",   color: "#475569" },
+  const popularTags = [
+    "Tutorial",
+    "Architecture",
+    "Engineering",
+    "React",
+    "Node.js",
+    "System Design",
+    "DevOps",
+    "AI / ML",
+    "Guide",
+    "Frontend",
+    "Backend",
+    "Database",
+    "Performance"
   ];
+  const popularEmojis = ["📝", "🚀", "💻", "⚡", "🎨", "🧠", "🔐", "🌐", "📊", "🛠️", "💡", "🔥"];
+  const colorPresets = ["#10B981", "#7C3AED", "#3B82F6", "#06B6D4", "#F59E0B", "#EC4899", "#6366F1"];
 
-  const blockIcon  = (type) => BLOCK_TYPES.find(b => b.type === type)?.icon  ?? "?";
-  const blockColor = (type) => BLOCK_TYPES.find(b => b.type === type)?.color ?? "#94A3B8";
+  // Filtered list with multi-tag matching
+  const filteredPosts = blogPosts.filter(p => {
+    const pTags = getPostTags(p);
+    const matchesSearch = !searchQuery || 
+      p.title?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      pTags.some(t => t.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (typeof p.tag === "string" && p.tag.toLowerCase().includes(searchQuery.toLowerCase()));
+    const matchesTag = tagFilter === "all" || pTags.includes(tagFilter) || p.tag === tagFilter;
+    return matchesSearch && matchesTag;
+  });
+
+  const allTags = Array.from(new Set(blogPosts.flatMap(p => getPostTags(p))));
+  const visibleCount = blogPosts.filter(p => !p.hidden).length;
+  const homeCount = blogPosts.filter(p => p.showOnHome && !p.hidden).length;
+  const hiddenCount = blogPosts.filter(p => p.hidden).length;
 
   return (
-    <SectionCard title="📝 Blog Content Editor" color="#A855F7">
-      {/* Post selector */}
-      <div className="mb-6">
-        <label className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wider block mb-2">
-          Select post to edit content
-        </label>
-        <div className="grid gap-2">
-          {blogPosts.length === 0 && (
-            <p className="text-sm text-[#475569] text-center py-4">No posts yet. Add a post above first.</p>
-          )}
-          {blogPosts.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => loadPost(p)}
-              className={`flex items-center gap-3 p-3 rounded-xl border text-left transition-all duration-200 ${
-                selectedPostId === p.id
-                  ? "border-[rgba(168,85,247,0.5)] bg-[rgba(168,85,247,0.1)]"
-                  : "border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)] hover:border-[rgba(168,85,247,0.3)]"
-              }`}
-            >
-              <span className="text-xl">{p.emoji}</span>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-white truncate">{p.title}</p>
-                <p className="text-xs text-[#64748B]">{p.content?.length ?? 0} blocks</p>
-              </div>
-              {selectedPostId === p.id && (
-                <span className="text-xs text-[#A855F7] font-bold flex-shrink-0">Editing</span>
-              )}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {selectedPost && (
-        <>
-          {/* Content blocks list */}
-          <div className="mb-4">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wider">
-                Content Blocks ({blocks.length})
-              </p>
-              <button
-                onClick={saveBlocks}
-                disabled={saving}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#A855F7] text-white text-xs font-bold hover:opacity-90 transition-opacity disabled:opacity-50"
-              >
-                {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />} {saving ? "Saving to Database..." : "Save Content"}
-              </button>
-            </div>
-
-            {blocks.length === 0 && (
-              <div className="rounded-xl border border-dashed border-[rgba(255,255,255,0.08)] p-8 text-center">
-                <p className="text-3xl mb-2">📄</p>
-                <p className="text-sm text-[#475569]">No content blocks yet.</p>
-                <p className="text-xs text-[#334155] mt-1">Add a "Rich Text" block to paste from ChatGPT / Word.</p>
-              </div>
+    <div className="space-y-6">
+      {/* ── All Blog Articles List Card ────────────────────────── */}
+      <SectionCard title={`Blog Articles (${blogPosts.length})`} color="#06B6D4">
+        {/* Top Summary & Filter Controls */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <span className="px-3 py-1 rounded-full bg-[rgba(6,182,212,0.1)] border border-[rgba(6,182,212,0.25)] text-cyan-400 font-semibold flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+              {visibleCount} Active
+            </span>
+            <span className="px-3 py-1 rounded-full bg-[rgba(245,158,11,0.1)] border border-[rgba(245,158,11,0.25)] text-amber-400 font-semibold flex items-center gap-1.5">
+              <Star className="w-3.5 h-3.5 fill-amber-400" />
+              {homeCount} on Home
+            </span>
+            {hiddenCount > 0 && (
+              <span className="px-3 py-1 rounded-full bg-[rgba(239,68,68,0.1)] border border-[rgba(239,68,68,0.25)] text-red-400 font-semibold flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
+                {hiddenCount} Hidden
+              </span>
             )}
-
-            <div className="space-y-2">
-              {blocks.map((block, idx) => (
-                <div
-                  key={idx}
-                  className={`flex items-start gap-2 p-3 rounded-xl border transition-all duration-200 ${
-                    block.hidden 
-                      ? "bg-[rgba(255,255,255,0.01)] border-[rgba(255,255,255,0.03)] opacity-50 grayscale" 
-                      : "border-[rgba(255,255,255,0.05)] bg-[rgba(255,255,255,0.02)]"
-                  } ${editingIdx === idx ? "border-[rgba(6,182,212,0.5)] bg-[rgba(6,182,212,0.05)]" : ""}`}
-                >
-                  <div
-                    className="w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5"
-                    style={{ background: `${blockColor(block.type)}18`, color: blockColor(block.type) }}
-                  >
-                    {blockIcon(block.type)}
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[10px] font-bold uppercase tracking-widest mb-0.5" style={{ color: blockColor(block.type) }}>
-                      {block.type}
-                    </p>
-                    {block.type === "richtext" ? (
-                      <div
-                        className="text-xs text-[#94A3B8] line-clamp-2 rich-preview"
-                        dangerouslySetInnerHTML={{ __html: block.html }}
-                      />
-                    ) : block.type === "image" ? (
-                      <div className="flex items-center gap-2">
-                        <img src={block.src} alt="" className="w-16 h-10 object-cover rounded-lg border border-[rgba(255,255,255,0.08)]" />
-                        {block.caption && <p className="text-xs text-[#64748B] truncate">{block.caption}</p>}
-                      </div>
-                    ) : block.type === "list" ? (
-                      <p className="text-xs text-[#94A3B8] truncate">{(block.items || []).join(" • ")}</p>
-                    ) : block.type === "divider" ? (
-                      <div className="h-px bg-[rgba(255,255,255,0.08)] my-1.5 w-full" />
-                    ) : (
-                      <p className="text-xs text-[#94A3B8] truncate max-w-xs">{block.text}</p>
-                    )}
-                  </div>
-                  {block.link && (
-                    <a
-                      href={block.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={e => e.stopPropagation()}
-                      className="inline-flex items-center gap-1 mt-1 text-[10px] text-[#06B6D4] hover:text-white transition-colors truncate max-w-[180px]"
-                    >
-                      <span>🔗</span>
-                      <span className="truncate">{block.linkLabel || block.link}</span>
-                    </a>
-                  )}
-
-                  <div className="flex gap-1 flex-shrink-0">
-                    <VisibilityBtn hidden={block.hidden} onClick={() => toggleHideBlock(idx)} />
-                    <button onClick={() => editBlock(idx)} className="p-1.5 rounded-lg text-[#06B6D4] hover:text-white hover:bg-[rgba(6,182,212,0.1)] transition-all" title="Edit">
-                      <Edit2 className="w-3.5 h-3.5" />
-                    </button>
-                    <button onClick={() => moveBlock(idx, -1)} disabled={idx === 0}
-                      className="p-1.5 rounded-lg text-[#475569] hover:text-white disabled:opacity-20 transition-colors" title="Move up">
-                      <ArrowUp className="w-3.5 h-3.5" />
-                    </button>
-                    <button onClick={() => moveBlock(idx, 1)} disabled={idx === blocks.length - 1}
-                      className="p-1.5 rounded-lg text-[#475569] hover:text-white disabled:opacity-20 transition-colors" title="Move down">
-                      <ArrowDown className="w-3.5 h-3.5" />
-                    </button>
-                    <button onClick={() => deleteBlock(idx)}
-                      className="p-1.5 rounded-lg text-red-400 hover:text-red-300 hover:bg-[rgba(239,68,68,0.1)] transition-all" title="Delete">
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
 
-          {/* Add block buttons */}
-          <div className="mb-4">
-            <p className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wider mb-3">Add Block</p>
-            <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-              {BLOCK_TYPES.map(({ type, label, icon, color }) => (
+          <button
+            onClick={() => {
+              if (open && editingPostId) handleCancel();
+              else {
+                setForm(blank);
+                setEditingPostId(null);
+                setOpen(true);
+                setTimeout(() => {
+                  document.getElementById("blog-editor-workspace")?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }, 100);
+              }
+            }}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#06B6D4] text-white text-xs font-bold hover:opacity-90 transition-opacity shadow-md"
+          >
+            {open ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+            {open ? "Close Editor" : "Write New Article"}
+          </button>
+        </div>
+
+        {/* Search & Tag Filter Bar */}
+        <div className="flex flex-col sm:flex-row gap-2.5 mb-4">
+          <div className="relative flex-1">
+            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#64748B]" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search articles by title, tag..."
+              className="w-full pl-8 pr-3 py-2 rounded-xl bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.08)] text-white text-xs placeholder:text-[#475569] focus:outline-none focus:border-cyan-400 transition-all"
+            />
+          </div>
+          {allTags.length > 0 && (
+            <div className="flex items-center gap-1 overflow-x-auto pb-1 sm:pb-0">
+              <button
+                onClick={() => setTagFilter("all")}
+                className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+                  tagFilter === "all" ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40" : "bg-white/[0.03] text-[#94A3B8] hover:text-white"
+                }`}
+              >
+                All Tags
+              </button>
+              {allTags.map(t => (
                 <button
-                  key={type}
-                  onClick={() => openAdd(type)}
-                  className={`flex flex-col items-center gap-1 p-3 rounded-xl border transition-all duration-200 text-center ${
-                    addingType === type
-                      ? "border-[rgba(168,85,247,0.5)] bg-[rgba(168,85,247,0.12)]"
-                      : "border-[rgba(255,255,255,0.06)] bg-[rgba(255,255,255,0.02)] hover:border-[rgba(255,255,255,0.12)]"
-                  } ${ type === "richtext" ? "col-span-1 sm:col-span-2" : "" }`}
+                  key={t}
+                  onClick={() => setTagFilter(t)}
+                  className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+                    tagFilter === t ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40" : "bg-white/[0.03] text-[#94A3B8] hover:text-white"
+                  }`}
                 >
-                  <span className="text-sm font-bold" style={{ color }}>{icon}</span>
-                  <span className="text-[10px] text-[#64748B] leading-tight">{label}</span>
-                  {type === "richtext" && <span className="text-[9px] text-[#475569]">Paste from ChatGPT / Word</span>}
+                  {t}
                 </button>
               ))}
             </div>
-          </div>
+          )}
+        </div>
 
-          {/* Block input form */}
-          {addingType && (
-            <div id="content-editor-form" className="rounded-xl border border-[rgba(168,85,247,0.25)] bg-[rgba(168,85,247,0.05)] p-4 space-y-3">
-              <p className="text-xs font-bold text-[#A855F7] uppercase tracking-widest mb-2">
-                {editingIdx !== null ? "Edit" : "New"} {BLOCK_TYPES.find(b => b.type === addingType)?.label}
-              </p>
+        {/* Articles List */}
+        <div className="space-y-3">
+          {filteredPosts.map((p, i) => (
+            <div
+              key={p.id}
+              className={`flex items-center justify-between gap-4 p-4 rounded-xl border transition-all duration-200 ${
+                p.hidden
+                  ? "bg-[rgba(255,255,255,0.01)] border-[rgba(255,255,255,0.03)] opacity-60"
+                  : "bg-[rgba(255,255,255,0.03)] border-[rgba(255,255,255,0.05)] hover:border-[rgba(255,255,255,0.1)]"
+              }`}
+            >
+              <div className="flex items-center gap-3.5 min-w-0">
+                <div className="flex flex-col gap-0.5 items-center justify-center">
+                  <button onClick={() => movePostOrder(i, 'up')} disabled={i === 0} className="text-[#64748B] hover:text-white disabled:opacity-30 p-0.5"><ArrowUp className="w-3 h-3" /></button>
+                  <button onClick={() => movePostOrder(i, 'down')} disabled={i === blogPosts.length - 1} className="text-[#64748B] hover:text-white disabled:opacity-30 p-0.5"><ArrowDown className="w-3 h-3" /></button>
+                </div>
 
-              {/* ── RICH TEXT WYSIWYG EDITOR ── */}
-              {addingType === "richtext" && (
-                <RichTextEditor
-                  value={newBlock.html || ""}
-                  onChange={(html) => setNewBlock(nb => ({ ...nb, html }))}
-                  handleRichImageUpload={handleRichImageUpload}
-                />
-              )}
+                {p.image ? (
+                  <img src={p.image} alt="" className="w-11 h-11 rounded-xl object-cover border border-[rgba(255,255,255,0.1)] flex-shrink-0" />
+                ) : (
+                  <span className="w-11 h-11 rounded-xl bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] flex items-center justify-center text-xl flex-shrink-0">
+                    {p.emoji || "📝"}
+                  </span>
+                )}
 
-              {(addingType === "paragraph" || addingType === "heading" || addingType === "subheading") && (
-                <textarea
-                  rows={addingType === "paragraph" ? 4 : 2}
-                  placeholder={addingType === "paragraph" ? "Write your paragraph text..." : "Heading text..."}
-                  value={newBlock.text || ""}
-                  onChange={(e) => setNewBlock((nb) => ({ ...nb, text: e.target.value }))}
-                  className="w-full px-4 py-3 rounded-xl bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] text-white placeholder:text-[#475569] focus:outline-none focus:border-[rgba(168,85,247,0.5)] text-sm resize-y"
-                />
-              )}
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-sm font-semibold text-white truncate max-w-md">{p.title}</p>
+                    {p.hidden ? (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[rgba(245,158,11,0.15)] text-amber-400 border border-[rgba(245,158,11,0.2)]">Hidden</span>
+                    ) : p.showOnHome ? (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[rgba(245,158,11,0.15)] text-amber-400 border border-[rgba(245,158,11,0.3)] flex items-center gap-1">
+                        <Star className="w-2.5 h-2.5 fill-amber-400" /> Home #{p.homeOrder || 1}
+                      </span>
+                    ) : null}
+                  </div>
 
-              {addingType === "image" && (
-                <>
-                  <div className="flex flex-col gap-2">
-                    <label className="text-xs font-semibold text-[#94A3B8]">Upload Image</label>
-                    <label className="flex items-center gap-2 px-4 py-3 rounded-xl bg-[rgba(255,255,255,0.04)] border border-dashed border-[rgba(255,255,255,0.12)] text-[#64748B] text-sm cursor-pointer hover:border-[rgba(168,85,247,0.4)] hover:text-white transition-all">
-                      <UploadCloud className="w-4 h-4" />
-                      Click to upload image
-                      <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
-                    </label>
-                    {newBlock.src && (
-                      <img src={newBlock.src} alt="preview" className="rounded-xl max-h-48 object-cover border border-[rgba(255,255,255,0.08)]" />
+                  <div className="flex items-center gap-2 text-xs text-[#64748B] mt-0.5 flex-wrap">
+                    <div className="flex items-center gap-1 flex-wrap">
+                      {getPostTags(p).slice(0, 4).map(t => (
+                        <span key={t} className="px-2 py-0.5 rounded-md bg-[rgba(124,58,237,0.12)] border border-[rgba(124,58,237,0.25)] text-[#C084FC] text-[10px] font-semibold">
+                          #{t}
+                        </span>
+                      ))}
+                      {getPostTags(p).length === 0 && (
+                        <span className="text-[#A855F7] font-semibold">{p.tag || "General"}</span>
+                      )}
+                    </div>
+                    <span>·</span>
+                    <span>{p.date || "Recent"}</span>
+                    <span>·</span>
+                    <span>{p.readTime || "5 min read"}</span>
+                    {p.author?.name && (
+                      <>
+                        <span>·</span>
+                        <span className="text-cyan-400 font-medium flex items-center gap-1">
+                          👤 {p.author.name} {p.author.isTeam ? "(Team)" : ""}
+                        </span>
+                      </>
+                    )}
+                    {Array.isArray(p.links) && p.links.length > 0 && (
+                      <>
+                        <span>·</span>
+                        <span className="text-emerald-400 font-medium">🔗 {p.links.length} links</span>
+                      </>
                     )}
                   </div>
-                  <div className="flex flex-col gap-1">
-                    <label className="text-xs font-semibold text-[#94A3B8]">Or paste image URL</label>
-                    <input
-                      type="text"
-                      placeholder="https://example.com/image.jpg"
-                      value={newBlock.src || ""}
-                      onChange={(e) => setNewBlock((nb) => ({ ...nb, src: e.target.value }))}
-                      className="w-full px-4 py-3 rounded-xl bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] text-white placeholder:text-[#475569] focus:outline-none focus:border-[rgba(168,85,247,0.5)] text-sm"
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const nextVal = !p.showOnHome;
+                    await edit(blogPosts, setBlogPosts, p.id, { showOnHome: nextVal }, 'blog');
+                    showToast(nextVal ? "★ Added to Home Page!" : "Removed from Home Page", nextVal ? "success" : "info");
+                  }}
+                  className={`p-2 rounded-lg border transition-all ${
+                    p.showOnHome
+                      ? "bg-[rgba(245,158,11,0.15)] border-[rgba(245,158,11,0.4)] text-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.2)]"
+                      : "bg-[rgba(255,255,255,0.03)] border-[rgba(255,255,255,0.08)] text-[#64748B] hover:text-amber-400 hover:border-[rgba(245,158,11,0.3)]"
+                  }`}
+                  title={p.showOnHome ? "Featured on Home (Click to remove)" : "Click to feature on Home"}
+                >
+                  <Star className={`w-3.5 h-3.5 ${p.showOnHome ? "fill-amber-400" : ""}`} />
+                </button>
+
+                <EditBtn onClick={() => handleEditClick(p)} />
+                <VisibilityBtn
+                  hidden={p.hidden}
+                  onClick={async () => {
+                    const nextHidden = !p.hidden;
+                    await edit(blogPosts, setBlogPosts, p.id, { hidden: nextHidden }, 'blog');
+                    showToast(nextHidden ? "Post hidden." : "Post visible!", "success");
+                  }}
+                />
+                <DeleteBtn onClick={() => { remove(blogPosts, setBlogPosts, p.id, 'blog'); showToast("Article deleted!"); }} />
+              </div>
+            </div>
+          ))}
+          {filteredPosts.length === 0 && (
+            <p className="text-center text-[#475569] text-sm py-8">
+              {searchQuery ? "No articles match your search." : "No blog articles found. Click 'Write New Article' to create one!"}
+            </p>
+          )}
+        </div>
+      </SectionCard>
+
+      {/* ── Unified Blog Article Editor Workspace (Collapsible) ── */}
+      <div id="blog-editor-workspace">
+        {open && (
+          <SectionCard
+            title={editingPostId ? `Editing Article: ${form.title || "Untitled"}` : "Create New Blog Article"}
+            color="#7C3AED"
+          >
+            {/* ── Top Bar: Quick Import README.md / Word .docx ──── */}
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-[rgba(124,58,237,0.12)] via-[rgba(6,182,212,0.12)] to-[rgba(16,185,129,0.08)] border border-[rgba(124,58,237,0.3)] mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#7C3AED] to-[#06B6D4] flex items-center justify-center text-white shadow-lg shrink-0">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-white font-space">Import from File (README.md or Word .docx)</h4>
+                  <p className="text-xs text-[#94A3B8]">
+                    Upload <code className="text-cyan-400">README.md</code>, <code className="text-purple-400">.docx</code>, or <code className="text-emerald-400">.txt</code> to instantly extract content, headings, and formatting!
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".md,.markdown,.docx,.doc,.txt"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleDocImport(file);
+                  }}
+                />
+                <button
+                  type="button"
+                  disabled={importingFile}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-[#7C3AED] hover:from-cyan-400 hover:to-[#6D28D9] text-white text-xs font-bold flex items-center gap-2 transition-all shadow-md active:scale-95 disabled:opacity-50"
+                >
+                  {importingFile ? <Loader2 className="w-4 h-4 animate-spin" /> : <UploadCloud className="w-4 h-4" />}
+                  <span>{importingFile ? "Reading Document..." : "Import File"}</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-6">
+              {/* ═══ Section 1: Basic Information ═══════════════ */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.06)] space-y-4">
+                <div className="flex items-center gap-2 pb-2 border-b border-[rgba(255,255,255,0.06)]">
+                  <span className="text-[#A855F7] font-bold text-sm">1.</span>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-white">Article Details & SEO Meta</h4>
+                </div>
+
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <div className="sm:col-span-2">
+                    <Field
+                      label="Article Title *"
+                      name="title"
+                      value={form.title}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setForm(f => ({
+                          ...f,
+                          title: val,
+                          slug: f.slug || val.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+                        }));
+                      }}
+                      placeholder="e.g. Master High-Performance Full Stack React & Node Architecture"
                     />
                   </div>
-                  <input
-                    type="text"
-                    placeholder="Caption (optional)"
-                    value={newBlock.caption || ""}
-                    onChange={(e) => setNewBlock((nb) => ({ ...nb, caption: e.target.value }))}
-                    className="w-full px-4 py-3 rounded-xl bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] text-white placeholder:text-[#475569] focus:outline-none focus:border-[rgba(168,85,247,0.5)] text-sm"
-                  />
-                </>
-              )}
 
-              {addingType === "quote" && (
-                <>
-                  <textarea
-                    rows={3}
-                    placeholder="Quote text..."
-                    value={newBlock.text || ""}
-                    onChange={(e) => setNewBlock((nb) => ({ ...nb, text: e.target.value }))}
-                    className="w-full px-4 py-3 rounded-xl bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] text-white placeholder:text-[#475569] focus:outline-none focus:border-[rgba(168,85,247,0.5)] text-sm resize-y"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Author (optional)"
-                    value={newBlock.author || ""}
-                    onChange={(e) => setNewBlock((nb) => ({ ...nb, author: e.target.value }))}
-                    className="w-full px-4 py-3 rounded-xl bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] text-white placeholder:text-[#475569] focus:outline-none focus:border-[rgba(168,85,247,0.5)] text-sm"
-                  />
-                </>
-              )}
+                  <div className="sm:col-span-2">
+                    <Field
+                      label="Excerpt / Summary"
+                      name="excerpt"
+                      value={form.excerpt}
+                      onChange={onChange}
+                      type="textarea"
+                      rows={2}
+                      placeholder="A crisp, engaging overview of this article for cards, social previews, and search engines..."
+                    />
+                  </div>
 
-              {addingType === "code" && (
-                <>
-                  <input
-                    type="text"
-                    placeholder="Language (e.g. javascript, python, css)"
-                    value={newBlock.lang || ""}
-                    onChange={(e) => setNewBlock((nb) => ({ ...nb, lang: e.target.value }))}
-                    className="w-full px-4 py-3 rounded-xl bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] text-white placeholder:text-[#475569] focus:outline-none focus:border-[rgba(168,85,247,0.5)] text-sm font-mono"
-                  />
-                  <textarea
-                    rows={6}
-                    placeholder="Paste your code here..."
-                    value={newBlock.text || ""}
-                    onChange={(e) => setNewBlock((nb) => ({ ...nb, text: e.target.value }))}
-                    className="w-full px-4 py-3 rounded-xl bg-[rgba(0,0,0,0.3)] border border-[rgba(255,255,255,0.08)] text-[#E2E8F0] placeholder:text-[#475569] focus:outline-none focus:border-[rgba(6,182,212,0.5)] text-sm font-mono resize-y"
-                  />
-                </>
-              )}
+                  {/* ── Multi-Tag Selector & Manager ── */}
+                  <div className="sm:col-span-2 space-y-2.5 p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.06]">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                      <div className="flex items-center gap-2">
+                        <Tag className="w-3.5 h-3.5 text-purple-400" />
+                        <label className="text-xs font-bold text-white uppercase tracking-wider">
+                          Tags & Categories ({currentFormTags.length} selected)
+                        </label>
+                      </div>
+                      <span className="text-[11px] text-[#94A3B8]">
+                        Click presets below to toggle on/off, or type custom tags
+                      </span>
+                    </div>
 
-              {addingType === "list" && (
-                <div className="space-y-2">
-                  {(newBlock.items || [""]).map((item, i) => (
-                    <div key={i} className="flex gap-2">
-                      <input
-                        type="text"
-                        placeholder={`Item ${i + 1}`}
-                        value={item}
-                        onChange={(e) => {
-                          const arr = [...(newBlock.items || [""])];
-                          arr[i] = e.target.value;
-                          setNewBlock((nb) => ({ ...nb, items: arr }));
-                        }}
-                        className="flex-1 px-4 py-2.5 rounded-xl bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] text-white placeholder:text-[#475569] focus:outline-none focus:border-[rgba(168,85,247,0.5)] text-sm"
-                      />
-                      {(newBlock.items || []).length > 1 && (
+                    {/* Active Selected Tags Chips */}
+                    <div className="min-h-[42px] p-2 rounded-xl bg-black/40 border border-white/[0.08] flex flex-wrap items-center gap-1.5">
+                      {currentFormTags.length === 0 ? (
+                        <span className="text-xs text-[#64748B] italic px-1">
+                          No tags selected yet. Click any preset pill below or add custom tags.
+                        </span>
+                      ) : (
+                        currentFormTags.map((t, idx) => (
+                          <span
+                            key={idx}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-gradient-to-r from-purple-500/25 to-cyan-500/20 border border-purple-500/40 text-purple-200 shadow-sm"
+                          >
+                            <span className="text-purple-400 font-mono">#</span>
+                            <span>{t}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveTag(t)}
+                              className="w-4 h-4 rounded-full flex items-center justify-center hover:bg-white/20 text-purple-300 hover:text-white transition-colors"
+                              title={`Remove tag ${t}`}
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </span>
+                        ))
+                      )}
+                      {currentFormTags.length > 0 && (
                         <button
-                          onClick={() => setNewBlock((nb) => ({ ...nb, items: nb.items.filter((_, j) => j !== i) }))}
-                          className="p-2.5 rounded-xl text-red-400 hover:bg-[rgba(239,68,68,0.1)] transition-all"
+                          type="button"
+                          onClick={() => setForm(f => ({ ...f, tags: [], tag: "" }))}
+                          className="ml-auto text-[10px] text-[#64748B] hover:text-red-400 transition-colors underline px-1"
                         >
-                          <X className="w-4 h-4" />
+                          Clear All
                         </button>
                       )}
                     </div>
+
+                    {/* Custom Tag Input + Add Button */}
+                    <div className="flex items-center gap-2">
+                      <div className="relative flex-1">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-purple-400 font-mono text-xs">#</span>
+                        <input
+                          type="text"
+                          value={customTagInput}
+                          onChange={(e) => setCustomTagInput(e.target.value)}
+                          onKeyDown={handleCustomTagKeyDown}
+                          placeholder="Type custom tag (e.g. Next.js, Tailwind, Docker) and press Enter or comma..."
+                          className="w-full pl-7 pr-3 py-2 rounded-xl bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] text-white placeholder:text-[#475569] focus:outline-none focus:border-purple-500 text-xs transition-all"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleAddTag(customTagInput)}
+                        disabled={!customTagInput.trim()}
+                        className="px-3.5 py-2 rounded-xl bg-purple-600/30 hover:bg-purple-600/50 border border-purple-500/40 text-purple-200 text-xs font-bold disabled:opacity-30 disabled:pointer-events-none transition-all flex items-center gap-1 shrink-0"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        Add Tag
+                      </button>
+                    </div>
+
+                    {/* Quick-Toggle Preset Pills */}
+                    <div>
+                      <span className="text-[10px] text-[#64748B] uppercase font-mono tracking-wider block mb-1.5">
+                        Quick Preset Tags (Click to toggle on/off):
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {popularTags.map(t => {
+                          const isSelected = currentFormTags.some(curr => curr.toLowerCase() === t.toLowerCase());
+                          return (
+                            <button
+                              key={t}
+                              type="button"
+                              onClick={() => handleToggleTag(t)}
+                              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                                isSelected
+                                  ? "bg-purple-500/30 text-purple-200 border border-purple-500/60 shadow-[0_0_12px_rgba(168,85,247,0.3)] ring-1 ring-purple-500/40"
+                                  : "bg-white/[0.03] text-[#94A3B8] hover:text-white border border-white/[0.07] hover:border-white/[0.15]"
+                              }`}
+                            >
+                              {isSelected ? (
+                                <Check className="w-3 h-3 text-purple-300" />
+                              ) : (
+                                <Plus className="w-3 h-3 text-[#64748B]" />
+                              )}
+                              <span>{t}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Accent Color with ColorPickerControl */}
+                  <div className="space-y-1.5">
+                    <ColorPickerControl
+                      label="Accent Color"
+                      name="tagColor"
+                      value={form.tagColor || "#10B981"}
+                      onChange={onChange}
+                      presets={["#10B981", "#7C3AED", "#3B82F6", "#06B6D4", "#F59E0B", "#EC4899", "#6366F1", "#00BFFF"]}
+                    />
+                  </div>
+
+                  {/* Emoji selector */}
+                  <div className="space-y-1.5">
+                    <Field label="Article Emoji" name="emoji" value={form.emoji} onChange={onChange} placeholder="📝" />
+                    <div className="flex flex-wrap gap-1 pt-1">
+                      {popularEmojis.map(em => (
+                        <button
+                          key={em}
+                          type="button"
+                          onClick={() => setForm(f => ({ ...f, emoji: em }))}
+                          className="w-7 h-7 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] flex items-center justify-center text-sm transition-all"
+                        >
+                          {em}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Read Time with Auto Calculate button */}
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wider">Read Time</label>
+                      <button
+                        type="button"
+                        onClick={() => setForm(f => ({ ...f, readTime: estimatedReadTime }))}
+                        className="text-[10px] text-cyan-400 hover:underline flex items-center gap-1 font-mono"
+                      >
+                        ⚡ Auto ({estimatedReadTime})
+                      </button>
+                    </div>
+                    <input
+                      type="text"
+                      name="readTime"
+                      value={form.readTime}
+                      onChange={onChange}
+                      placeholder="5 min read"
+                      className="w-full px-4 py-2.5 rounded-xl bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] text-white placeholder:text-[#475569] focus:outline-none focus:border-cyan-400 text-sm"
+                    />
+                  </div>
+
+                  {/* Date with Today button */}
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wider">Date</label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const today = new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                          setForm(f => ({ ...f, date: today }));
+                        }}
+                        className="text-[10px] text-purple-400 hover:underline font-mono"
+                      >
+                        Current Month
+                      </button>
+                    </div>
+                    <input
+                      type="text"
+                      name="date"
+                      value={form.date}
+                      onChange={onChange}
+                      placeholder="Aug 2025"
+                      className="w-full px-4 py-2.5 rounded-xl bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] text-white placeholder:text-[#475569] focus:outline-none focus:border-purple-500 text-sm"
+                    />
+                  </div>
+
+                  {/* Slug */}
+                  <Field label="URL Slug (auto)" name="slug" value={form.slug} onChange={onChange} placeholder="master-fullstack-architecture" />
+
+                  {/* Cover Image URL with Cloudinary Upload */}
+                  <div className="sm:col-span-2">
+                    <label className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wider mb-1.5 block">
+                      Cover Image <span className="text-[#64748B] normal-case font-normal">(Hero banner shown at top of article)</span>
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        name="image"
+                        value={form.image || ""}
+                        onChange={onChange}
+                        placeholder="https://... or click Upload →"
+                        className="flex-1 px-4 py-3 rounded-xl bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)] text-white placeholder:text-[#475569] focus:outline-none focus:border-purple-500 text-sm"
+                      />
+                      <CloudinaryUpload onUpload={(url) => setForm(f => ({ ...f, image: url }))} />
+                      {form.image && (
+                        <img src={form.image} alt="Cover preview" className="w-12 h-10 rounded-lg object-cover border border-white/10" />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Primary Direct Action Links & URLs */}
+                  <div className="sm:col-span-2 pt-3 border-t border-white/[0.06] space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                      <div className="flex items-center gap-2">
+                        <ExternalLink className="w-3.5 h-3.5 text-cyan-400" />
+                        <label className="text-xs font-bold text-white uppercase tracking-wider">
+                          Primary Action Links & Direct URLs
+                        </label>
+                      </div>
+                      <span className="text-[11px] text-[#94A3B8]">
+                        Featured as interactive glow buttons in hero and quick links in the sidebar
+                      </span>
+                    </div>
+
+                    <div className="grid sm:grid-cols-2 gap-3">
+                      <Field
+                        label="🌐 Live Demo URL"
+                        name="demo"
+                        value={form.demo || ""}
+                        onChange={onChange}
+                        placeholder="https://my-live-demo.vercel.app"
+                      />
+                      <Field
+                        label="💻 GitHub / Source Code URL"
+                        name="github"
+                        value={form.github || ""}
+                        onChange={onChange}
+                        placeholder="https://github.com/username/repository"
+                      />
+                      <Field
+                        label="📄 Documentation / Guide URL"
+                        name="docsUrl"
+                        value={form.docsUrl || ""}
+                        onChange={onChange}
+                        placeholder="https://docs.my-project.com"
+                      />
+                      <Field
+                        label="🎥 Video / YouTube Walkthrough URL"
+                        name="youtubeUrl"
+                        value={form.youtubeUrl || ""}
+                        onChange={onChange}
+                        placeholder="https://youtube.com/watch?v=..."
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* ═══ Section 2: Author Control (Multiple Authors via Team Profiles or Guest) ═ */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-[rgba(124,58,237,0.03)] border border-[rgba(124,58,237,0.18)] space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-[rgba(255,255,255,0.06)]">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[#A855F7] font-bold text-sm">2.</span>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-white">
+                      Who Wrote This Article (Authors & Team Profiles)
+                    </h4>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                      {(form.authors || []).length} Assigned
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => setShowProfilePicker(true)}
+                      className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-600/30 to-cyan-600/30 border border-purple-500/40 hover:border-purple-400 text-purple-200 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm"
+                    >
+                      <Users className="w-3.5 h-3.5 text-purple-300" />
+                      Pick from Team Profiles ({teamProfiles.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleAddManualAuthor}
+                      className="px-3 py-1.5 rounded-lg bg-white/[0.04] border border-white/[0.1] hover:border-white/20 text-slate-300 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all"
+                    >
+                      <UserPlus className="w-3.5 h-3.5 text-cyan-400" />
+                      Add Guest Author
+                    </button>
+                  </div>
+                </div>
+
+                <p className="text-xs text-[#94A3B8]">
+                  Articles support multiple contributors! Pick members from your saved <span className="text-[#C084FC] font-semibold">Team Profiles</span> or add custom guest authors. The first author is featured as the <span className="text-cyan-300 font-semibold">Lead Author</span>.
+                </p>
+
+                {/* Team Profiles Multi-Picker Modal */}
+                {showProfilePicker && (
+                  <div className="p-4 sm:p-5 rounded-2xl bg-[#090E1A] border border-[rgba(124,58,237,0.4)] shadow-2xl space-y-3.5 animate-fadeIn">
+                    <div className="flex items-center justify-between pb-2 border-b border-white/[0.08]">
+                      <div className="flex items-center gap-2">
+                        <Users className="w-4 h-4 text-[#A855F7]" />
+                        <h4 className="font-space font-bold text-white text-sm">Select Team Members for this Article</h4>
+                        <span className="text-xs text-[#64748B]">({teamProfiles.length} available)</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowProfilePicker(false)}
+                        className="p-1 rounded-lg text-[#94A3B8] hover:text-white hover:bg-white/[0.08] transition-all"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <div className="relative">
+                      <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#64748B]" />
+                      <input
+                        type="text"
+                        value={pickerSearch}
+                        onChange={(e) => setPickerSearch(e.target.value)}
+                        placeholder="Search team member by name, role, email..."
+                        className="w-full pl-8 pr-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-xs placeholder:text-[#475569] focus:outline-none focus:border-purple-500"
+                      />
+                    </div>
+
+                    <div className="max-h-72 overflow-y-auto space-y-2 pr-1">
+                      {teamProfiles.length === 0 ? (
+                        <p className="text-center text-xs text-[#64748B] py-6">
+                          No team profiles created yet. Add team members under the "Team Profiles" tab, or click "Add Guest Author" above.
+                        </p>
+                      ) : (
+                        teamProfiles
+                          .filter(tp => !pickerSearch || tp.name?.toLowerCase().includes(pickerSearch.toLowerCase()) || tp.role?.toLowerCase().includes(pickerSearch.toLowerCase()) || tp.email?.toLowerCase().includes(pickerSearch.toLowerCase()))
+                          .map(tp => {
+                            const isAssigned = (form.authors || []).some(
+                              a => (a.teamId && String(a.teamId) === String(tp.id)) || (a.name && a.name.toLowerCase() === tp.name?.toLowerCase())
+                            );
+                            return (
+                              <div
+                                key={tp.id}
+                                onClick={() => handleToggleTeamAuthor(tp)}
+                                className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer ${
+                                  isAssigned
+                                    ? "bg-purple-500/15 border-purple-500/50 shadow-sm ring-1 ring-purple-500/30"
+                                    : "bg-white/[0.02] border-white/[0.06] hover:border-purple-500/40 hover:bg-white/[0.04]"
+                                }`}
+                              >
+                                <div className="flex items-center gap-3 min-w-0">
+                                  {tp.photo ? (
+                                    <img src={tp.photo} alt={tp.name} className="w-9 h-9 rounded-full object-cover border border-purple-500/30" />
+                                  ) : (
+                                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-purple-600 to-cyan-600 flex items-center justify-center font-bold text-white text-xs">
+                                      {tp.name?.charAt(0) || "T"}
+                                    </div>
+                                  )}
+                                  <div className="min-w-0">
+                                    <div className="flex items-center gap-2">
+                                      <p className="text-xs font-bold text-white truncate">{tp.name}</p>
+                                      {tp.skills && (
+                                        <span className="hidden sm:inline text-[10px] text-purple-300 font-mono truncate max-w-[150px]">
+                                          • {tp.skills}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <p className="text-[11px] text-[#A855F7] truncate">{tp.role || "Team Member"}</p>
+                                    {tp.email && <p className="text-[10px] text-[#64748B] truncate">{tp.email}</p>}
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-2 shrink-0">
+                                  {isAssigned ? (
+                                    <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-purple-500/30 text-purple-200 border border-purple-500/50 flex items-center gap-1">
+                                      <Check className="w-3.5 h-3.5 text-purple-300" /> Selected
+                                    </span>
+                                  ) : (
+                                    <span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-white/[0.05] text-[#94A3B8] hover:text-white border border-white/10 flex items-center gap-1">
+                                      <Plus className="w-3.5 h-3.5" /> Add Author
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })
+                      )}
+                    </div>
+
+                    <div className="pt-2 border-t border-white/[0.06] flex items-center justify-between">
+                      <span className="text-[11px] text-[#64748B]">
+                        Click any member to add or remove them as a co-author.
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setShowProfilePicker(false)}
+                        className="px-3 py-1 rounded-lg bg-white/[0.06] hover:bg-white/[0.1] text-white text-xs font-semibold transition-all"
+                      >
+                        Done
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Assigned Authors Cards */}
+                <div className="space-y-3">
+                  {(form.authors || []).map((authorItem, idx) => {
+                    const isLead = idx === 0;
+                    const isExpanded = expandedAuthorIdx === idx;
+                    return (
+                      <div
+                        key={idx}
+                        className={`p-3.5 rounded-xl border transition-all ${
+                          isLead
+                            ? "bg-purple-500/[0.06] border-purple-500/30 shadow-md"
+                            : "bg-white/[0.02] border-white/[0.07]"
+                        }`}
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                            {/* Avatar */}
+                            {authorItem.avatar ? (
+                              <img
+                                src={authorItem.avatar}
+                                alt={authorItem.name}
+                                className="w-10 h-10 rounded-full object-cover border border-purple-500/40 shrink-0"
+                              />
+                            ) : (
+                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#06B6D4] flex items-center justify-center font-bold text-white text-xs shrink-0 font-space">
+                                {authorItem.name?.charAt(0) || "A"}
+                              </div>
+                            )}
+
+                            {/* Info */}
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-xs font-bold text-white truncate">
+                                  {authorItem.name || "Untitled Author"}
+                                </span>
+                                {isLead ? (
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                                    ★ Lead Author
+                                  </span>
+                                ) : (
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-500/15 text-purple-300 border border-purple-500/20">
+                                    Co-Author #{idx + 1}
+                                  </span>
+                                )}
+                                {authorItem.isTeam && (
+                                  <span className="px-1.5 py-0.5 rounded text-[9px] font-mono bg-white/[0.05] text-[#94A3B8] border border-white/10">
+                                    Team Profile
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[11px] text-[#A855F7] truncate">{authorItem.role || "Contributor"}</p>
+                            </div>
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="flex items-center gap-1.5 self-end sm:self-center shrink-0">
+                            {/* Make Lead button */}
+                            {!isLead && (
+                              <button
+                                type="button"
+                                onClick={() => handleMakeLeadAuthor(idx)}
+                                className="px-2 py-1 rounded-lg text-[10px] font-bold bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20 border border-cyan-500/30 transition-all"
+                                title="Make this author the primary lead author"
+                              >
+                                Make Lead
+                              </button>
+                            )}
+
+                            {/* Order arrows */}
+                            <button
+                              type="button"
+                              onClick={() => handleMoveAuthorOrder(idx, 'up')}
+                              disabled={idx === 0}
+                              className="p-1 rounded text-[#94A3B8] hover:text-white disabled:opacity-20 transition-all"
+                              title="Move up"
+                            >
+                              <ArrowUp className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleMoveAuthorOrder(idx, 'down')}
+                              disabled={idx === (form.authors || []).length - 1}
+                              className="p-1 rounded text-[#94A3B8] hover:text-white disabled:opacity-20 transition-all"
+                              title="Move down"
+                            >
+                              <ArrowDown className="w-3.5 h-3.5" />
+                            </button>
+
+                            {/* Edit / Expand Drawer */}
+                            <button
+                              type="button"
+                              onClick={() => setExpandedAuthorIdx(isExpanded ? null : idx)}
+                              className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${
+                                isExpanded
+                                  ? "bg-purple-500/20 border-purple-500/40 text-purple-200"
+                                  : "bg-white/[0.04] border-white/10 text-[#94A3B8] hover:text-white"
+                              }`}
+                            >
+                              {isExpanded ? "Hide Details" : "Edit / Details"}
+                            </button>
+
+                            {/* Delete author */}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveAuthor(idx)}
+                              className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/10 transition-all"
+                              title="Remove author"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Collapsible Detailed Editing Fields */}
+                        {isExpanded && (
+                          <div className="mt-3 pt-3 border-t border-white/[0.08] space-y-3 animate-fadeIn">
+                            <div className="grid sm:grid-cols-2 gap-3">
+                              <Field
+                                label="Author Name"
+                                name="name"
+                                value={authorItem.name || ""}
+                                onChange={(e) => handleUpdateAuthor(idx, "name", e.target.value)}
+                                placeholder="Full Name"
+                              />
+                              <Field
+                                label="Author Role / Title"
+                                name="role"
+                                value={authorItem.role || ""}
+                                onChange={(e) => handleUpdateAuthor(idx, "role", e.target.value)}
+                                placeholder="e.g. Full Stack Developer"
+                              />
+
+                              {/* Photo URL with Upload */}
+                              <div className="sm:col-span-2">
+                                <label className="text-xs font-semibold text-[#94A3B8] uppercase tracking-wider mb-1 block">
+                                  Author Avatar / Photo URL
+                                </label>
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="text"
+                                    value={authorItem.avatar || ""}
+                                    onChange={(e) => handleUpdateAuthor(idx, "avatar", e.target.value)}
+                                    placeholder="https://... photo URL"
+                                    className="flex-1 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-xs placeholder:text-[#475569] focus:outline-none focus:border-purple-500"
+                                  />
+                                  <CloudinaryUpload onUpload={(url) => handleUpdateAuthor(idx, "avatar", url)} />
+                                </div>
+                              </div>
+
+                              <div className="sm:col-span-2">
+                                <Field
+                                  label="Author Bio"
+                                  name="bio"
+                                  value={authorItem.bio || ""}
+                                  onChange={(e) => handleUpdateAuthor(idx, "bio", e.target.value)}
+                                  type="textarea"
+                                  rows={2}
+                                  placeholder="Short bio shown on the article sidebar & card..."
+                                />
+                              </div>
+
+                              <Field
+                                label="GitHub URL"
+                                name="github"
+                                value={authorItem.github || ""}
+                                onChange={(e) => handleUpdateAuthor(idx, "github", e.target.value)}
+                                placeholder="https://github.com/..."
+                              />
+                              <Field
+                                label="LinkedIn URL"
+                                name="linkedin"
+                                value={authorItem.linkedin || ""}
+                                onChange={(e) => handleUpdateAuthor(idx, "linkedin", e.target.value)}
+                                placeholder="https://linkedin.com/in/..."
+                              />
+                              <Field
+                                label="Email Address"
+                                name="email"
+                                value={authorItem.email || ""}
+                                onChange={(e) => handleUpdateAuthor(idx, "email", e.target.value)}
+                                placeholder="author@example.com"
+                              />
+                              <Field
+                                label="Twitter / X Profile"
+                                name="twitter"
+                                value={authorItem.twitter || ""}
+                                onChange={(e) => handleUpdateAuthor(idx, "twitter", e.target.value)}
+                                placeholder="https://x.com/..."
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+
+                  {(!form.authors || form.authors.length === 0) && (
+                    <div
+                      onClick={() => setShowProfilePicker(true)}
+                      className="p-6 rounded-xl border border-dashed border-purple-500/30 hover:border-purple-500/60 bg-purple-500/[0.02] hover:bg-purple-500/[0.05] text-center cursor-pointer transition-all"
+                    >
+                      <Users className="w-8 h-8 mx-auto text-purple-400 mb-2 opacity-80" />
+                      <p className="text-xs font-bold text-white">No Authors Assigned Yet</p>
+                      <p className="text-[11px] text-[#94A3B8] mt-0.5">
+                        Click here to select team members from saved <strong className="text-purple-300">Team Profiles</strong> or add a guest author.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* ═══ Section 3: Multiple Links & Resources Manager ════ */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-[rgba(6,182,212,0.03)] border border-[rgba(6,182,212,0.18)] space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-[rgba(255,255,255,0.06)]">
+                  <div className="flex items-center gap-2">
+                    <span className="text-cyan-400 font-bold text-sm">3.</span>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-white">
+                      Multiple Action Links & Resources Manager
+                    </h4>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                      {(form.links || []).length} Added
+                    </span>
+                  </div>
+
+                  {/* Quick-Add Preset Buttons */}
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => handleAddLink({ label: "Live Demo", url: form.demo || "", type: "demo" })}
+                      className="px-2.5 py-1 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20 text-xs font-semibold flex items-center gap-1 transition-all"
+                    >
+                      <Plus className="w-3 h-3" /> Live Demo
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleAddLink({ label: "Source Code", url: form.github || "", type: "github" })}
+                      className="px-2.5 py-1 rounded-lg bg-purple-500/10 border border-purple-500/30 text-purple-300 hover:bg-purple-500/20 text-xs font-semibold flex items-center gap-1 transition-all"
+                    >
+                      <Plus className="w-3 h-3" /> GitHub Repo
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleAddLink({ label: "API Documentation", url: form.docsUrl || "", type: "docs" })}
+                      className="px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 text-xs font-semibold flex items-center gap-1 transition-all"
+                    >
+                      <Plus className="w-3 h-3" /> Docs
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleAddLink({ label: "Video Walkthrough", url: form.youtubeUrl || "", type: "video" })}
+                      className="px-2.5 py-1 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-300 hover:bg-rose-500/20 text-xs font-semibold flex items-center gap-1 transition-all"
+                    >
+                      <Plus className="w-3 h-3" /> Video
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleAddLink({ label: "Download Files", url: "", type: "download" })}
+                      className="px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 hover:bg-amber-500/20 text-xs font-semibold flex items-center gap-1 transition-all"
+                    >
+                      <Plus className="w-3 h-3" /> Download
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleAddLink({ label: "", url: "", type: "link" })}
+                      className="px-2.5 py-1 rounded-lg bg-white/[0.04] border border-white/[0.08] text-[#94A3B8] hover:text-white text-xs font-semibold flex items-center gap-1 transition-all"
+                    >
+                      <Plus className="w-3 h-3" /> Custom Link
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-2.5">
+                  {(form.links || []).map((linkItem, idx) => (
+                    <div
+                      key={idx}
+                      className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-cyan-500/30 transition-all"
+                    >
+                      <div className="flex items-center gap-2">
+                        {/* Type Dropdown */}
+                        <select
+                          value={linkItem.type || "link"}
+                          onChange={(e) => handleUpdateLink(idx, "type", e.target.value)}
+                          className="bg-white/[0.05] border border-white/[0.1] rounded-lg px-2.5 py-2 text-xs text-white focus:outline-none focus:border-cyan-400 cursor-pointer"
+                        >
+                          <option value="demo" className="bg-[#0f172a]">🌐 Live Demo</option>
+                          <option value="github" className="bg-[#0f172a]">💻 GitHub</option>
+                          <option value="docs" className="bg-[#0f172a]">📄 Docs / API</option>
+                          <option value="video" className="bg-[#0f172a]">🎥 Video</option>
+                          <option value="download" className="bg-[#0f172a]">📥 Download</option>
+                          <option value="link" className="bg-[#0f172a]">🔗 External</option>
+                        </select>
+
+                        {/* Reorder Arrows */}
+                        <div className="flex items-center gap-0.5">
+                          <button
+                            type="button"
+                            onClick={() => handleMoveLink(idx, 'up')}
+                            disabled={idx === 0}
+                            className="p-1 text-[#64748B] hover:text-white disabled:opacity-20 transition-colors"
+                            title="Move link up"
+                          >
+                            <ArrowUp className="w-3 h-3" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleMoveLink(idx, 'down')}
+                            disabled={idx === (form.links || []).length - 1}
+                            className="p-1 text-[#64748B] hover:text-white disabled:opacity-20 transition-colors"
+                            title="Move link down"
+                          >
+                            <ArrowDown className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Label Input */}
+                      <input
+                        type="text"
+                        value={linkItem.label || ""}
+                        onChange={(e) => handleUpdateLink(idx, "label", e.target.value)}
+                        placeholder="Link Label (e.g. Live Project Demo)"
+                        className="sm:w-1/3 px-3 py-2 rounded-lg bg-white/[0.04] border border-white/[0.08] text-white text-xs placeholder:text-[#475569] focus:outline-none focus:border-cyan-400"
+                      />
+
+                      {/* URL Input */}
+                      <input
+                        type="url"
+                        value={linkItem.url || ""}
+                        onChange={(e) => handleUpdateLink(idx, "url", e.target.value)}
+                        placeholder="https://example.com/..."
+                        className="flex-1 px-3 py-2 rounded-lg bg-white/[0.04] border border-white/[0.08] text-white text-xs placeholder:text-[#475569] focus:outline-none focus:border-cyan-400"
+                      />
+
+                      <div className="flex items-center gap-1.5 self-end sm:self-center">
+                        {/* Test URL button */}
+                        {linkItem.url && (
+                          <button
+                            type="button"
+                            onClick={() => window.open(linkItem.url, "_blank")}
+                            className="p-2 rounded-lg text-cyan-400 hover:bg-cyan-500/10 transition-all shrink-0"
+                            title="Open / test link in new tab"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+
+                        {/* Remove button */}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveLink(idx)}
+                          className="p-2 rounded-lg text-red-400 hover:bg-red-500/10 transition-all shrink-0"
+                          title="Remove link"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
                   ))}
+
+                  {(!form.links || form.links.length === 0) && (
+                    <p className="text-xs text-[#64748B] text-center py-3">
+                      No multiple links added yet. Click the preset buttons above to add Live Demo, GitHub repo, API docs, or Custom links.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* ═══ Section 4: Content Editor with Beside Split View ══ */}
+              <div
+                className={`p-4 sm:p-5 rounded-2xl border transition-all duration-300 space-y-3 relative ${
+                  isDragging
+                    ? "bg-cyan-500/[0.08] border-cyan-400 shadow-[0_0_30px_rgba(6,182,212,0.3)] ring-2 ring-cyan-400"
+                    : "bg-[rgba(255,255,255,0.02)] border-[rgba(255,255,255,0.08)]"
+                }`}
+                onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setIsDragging(false);
+                  const file = e.dataTransfer.files?.[0];
+                  if (file) handleDocImport(file);
+                }}
+              >
+                {/* Drag-and-drop active visual overlay */}
+                {isDragging && (
+                  <div className="absolute inset-0 z-50 rounded-2xl bg-[#090E1A]/95 backdrop-blur-md flex flex-col items-center justify-center gap-3 border-2 border-dashed border-cyan-400 p-6 pointer-events-none animate-pulse">
+                    <div className="w-16 h-16 rounded-2xl bg-cyan-500/20 border border-cyan-400/50 flex items-center justify-center text-cyan-300 shadow-[0_0_25px_rgba(6,182,212,0.4)]">
+                      <DownloadCloud className="w-8 h-8" />
+                    </div>
+                    <p className="text-base font-bold text-white font-space">Drop File to Auto-Detect & Import!</p>
+                    <p className="text-xs text-cyan-300 max-w-sm text-center">
+                      Drop Word <code className="text-white bg-white/10 px-1 py-0.5 rounded">.docx</code>, <code className="text-white bg-white/10 px-1 py-0.5 rounded">README.md</code>, <code className="text-white bg-white/10 px-1 py-0.5 rounded">.html</code>, or ChatGPT <code className="text-white bg-white/10 px-1 py-0.5 rounded">.json</code>
+                    </p>
+                  </div>
+                )}
+
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-[rgba(255,255,255,0.06)]">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[#A855F7] font-bold text-sm">4.</span>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-white">
+                      Article Content & Markdown Editor
+                    </h4>
+                    <span className="px-2 py-0.5 rounded-md text-[10px] font-mono bg-purple-500/15 text-purple-300 border border-purple-500/30">
+                      {currentWordCount.toLocaleString()} words · {estimatedReadTime}
+                    </span>
+                  </div>
+
+                  {/* Mode Selector */}
+                  <div className="flex items-center gap-0.5 p-0.5 rounded-xl bg-[rgba(255,255,255,0.04)] border border-[rgba(255,255,255,0.08)]">
+                    {[
+                      { id: "edit", label: "✏️ Write Only" },
+                      { id: "split", label: "⬛ Beside Split" },
+                      { id: "preview", label: "👁 Preview" }
+                    ].map(tab => (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => setEditorMode(tab.id)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                          editorMode === tab.id
+                            ? "bg-gradient-to-r from-[#7C3AED] to-[#06B6D4] text-white shadow-md"
+                            : "text-[#94A3B8] hover:text-white"
+                        }`}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* ── Typography & Real Website Presentation Control Bar ── */}
+                <div className="p-3.5 rounded-xl bg-gradient-to-r from-purple-950/30 via-slate-900/50 to-cyan-950/30 border border-white/[0.08] flex flex-wrap items-center justify-between gap-3 text-xs">
+                  {/* Font Family Controls */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[#94A3B8] font-bold uppercase tracking-wider flex items-center gap-1.5 text-[11px]">
+                      <Type className="w-3.5 h-3.5 text-purple-400" /> Font:
+                    </span>
+                    <div className="flex items-center gap-1 p-0.5 rounded-lg bg-white/[0.04] border border-white/[0.08]">
+                      {[
+                        { id: "inter", label: "Inter (Modern)" },
+                        { id: "space", label: "Space Grotesk (Tech)" },
+                        { id: "merriweather", label: "Merriweather (Serif)" },
+                        { id: "mono", label: "JetBrains (Code)" }
+                      ].map(f => (
+                        <button
+                          key={f.id}
+                          type="button"
+                          onClick={() => setForm(prev => ({ ...prev, styling: { ...(prev.styling || blankStyling), fontFamily: f.id } }))}
+                          className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all ${
+                            (form.styling?.fontFamily || "inter") === f.id
+                              ? "bg-purple-600/40 text-purple-200 border border-purple-500/50 shadow-sm"
+                              : "text-[#94A3B8] hover:text-white"
+                          }`}
+                        >
+                          {f.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Font Size Controls */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[#94A3B8] font-bold uppercase tracking-wider flex items-center gap-1.5 text-[11px]">
+                      <Sliders className="w-3.5 h-3.5 text-cyan-400" /> Size:
+                    </span>
+                    <div className="flex items-center gap-1 p-0.5 rounded-lg bg-white/[0.04] border border-white/[0.08]">
+                      {[
+                        { id: "compact", label: "15px Compact" },
+                        { id: "standard", label: "17px Standard" },
+                        { id: "large", label: "19px Large" },
+                        { id: "xlarge", label: "21px X-Large" }
+                      ].map(s => (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onClick={() => setForm(prev => ({ ...prev, styling: { ...(prev.styling || blankStyling), fontSize: s.id } }))}
+                          className={`px-2 py-1 rounded-md text-[11px] font-semibold transition-all ${
+                            (form.styling?.fontSize || "standard") === s.id
+                              ? "bg-cyan-500/30 text-cyan-200 border border-cyan-500/50 shadow-sm"
+                              : "text-[#94A3B8] hover:text-white"
+                          }`}
+                        >
+                          {s.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Reading Layout Width Controls */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[#94A3B8] font-bold uppercase tracking-wider flex items-center gap-1.5 text-[11px]">
+                      <Maximize2 className="w-3.5 h-3.5 text-emerald-400" /> Layout Width:
+                    </span>
+                    <div className="flex items-center gap-1 p-0.5 rounded-lg bg-white/[0.04] border border-white/[0.08]">
+                      {[
+                        { id: "standard", label: "Optimal (768px)" },
+                        { id: "wide", label: "Wide (896px)" },
+                        { id: "ultrawide", label: "Ultra-Wide" }
+                      ].map(w => (
+                        <button
+                          key={w.id}
+                          type="button"
+                          onClick={() => setForm(prev => ({ ...prev, styling: { ...(prev.styling || blankStyling), layoutWidth: w.id } }))}
+                          className={`px-2 py-1 rounded-md text-[11px] font-semibold transition-all ${
+                            (form.styling?.layoutWidth || "standard") === w.id
+                              ? "bg-emerald-500/30 text-emerald-200 border border-emerald-500/50 shadow-sm"
+                              : "text-[#94A3B8] hover:text-white"
+                          }`}
+                        >
+                          {w.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Markdown Formatting & Smart Paste Toolbar */}
+                <div className="flex flex-wrap items-center gap-1 p-2 rounded-xl bg-black/40 border border-white/[0.06]">
                   <button
-                    onClick={() => setNewBlock((nb) => ({ ...nb, items: [...(nb.items || [""]), ""] }))}
-                    className="text-xs text-[#A855F7] hover:text-white transition-colors flex items-center gap-1"
+                    type="button"
+                    onClick={handleClipboardButtonClick}
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-gradient-to-r from-cyan-500/20 to-purple-500/20 border border-cyan-500/30 hover:border-cyan-400 text-cyan-300 text-xs font-bold transition-all shadow-sm active:scale-95 mr-1"
+                    title="Smart Paste: Auto-detects ChatGPT, Word, tables, and colors"
                   >
-                    <Plus className="w-3 h-3" /> Add item
+                    <ClipboardPaste className="w-3.5 h-3.5" />
+                    <span>Smart Paste</span>
+                  </button>
+                  <span className="w-px h-4 bg-white/10 mx-1" />
+
+                  <button type="button" onClick={() => insertMarkdownSyntax('# ', '', 'Heading 1')} className="px-2 py-1 rounded text-xs font-bold text-white hover:bg-white/10" title="Heading 1">H1</button>
+                  <button type="button" onClick={() => insertMarkdownSyntax('## ', '', 'Heading 2')} className="px-2 py-1 rounded text-xs font-bold text-white hover:bg-white/10" title="Heading 2">H2</button>
+                  <button type="button" onClick={() => insertMarkdownSyntax('### ', '', 'Heading 3')} className="px-2 py-1 rounded text-xs font-bold text-white hover:bg-white/10" title="Heading 3">H3</button>
+                  <span className="w-px h-4 bg-white/10 mx-1" />
+                  <button type="button" onClick={() => insertMarkdownSyntax('**', '**', 'bold text')} className="px-2 py-1 rounded text-xs font-bold text-white hover:bg-white/10" title="Bold">B</button>
+                  <button type="button" onClick={() => insertMarkdownSyntax('*', '*', 'italic text')} className="px-2 py-1 rounded text-xs italic text-white hover:bg-white/10" title="Italic">I</button>
+                  <button type="button" onClick={() => insertMarkdownSyntax('~~', '~~', 'strikethrough')} className="px-2 py-1 rounded text-xs text-white hover:bg-white/10" title="Strikethrough">S̶</button>
+                  <span className="w-px h-4 bg-white/10 mx-1" />
+                  <button type="button" onClick={() => insertMarkdownSyntax('- ', '', 'List item')} className="px-2 py-1 rounded text-xs text-cyan-400 hover:bg-white/10" title="Bullet List">• List</button>
+                  <button type="button" onClick={() => insertMarkdownSyntax('1. ', '', 'First item')} className="px-2 py-1 rounded text-xs text-cyan-400 hover:bg-white/10" title="Numbered List">1. List</button>
+                  <button type="button" onClick={() => insertMarkdownSyntax('> ', '', 'Quoted thought')} className="px-2 py-1 rounded text-xs text-amber-400 hover:bg-white/10" title="Quote">"" Quote</button>
+                  <button type="button" onClick={() => insertMarkdownSyntax('> 💡 **Tip:** ', '', 'Helpful advice here')} className="px-2 py-1 rounded text-xs text-emerald-400 hover:bg-white/10" title="Tip Box">💡 Tip</button>
+                  <button type="button" onClick={() => insertMarkdownSyntax('> 🚨 **Important:** ', '', 'Critical warning note')} className="px-2 py-1 rounded text-xs text-red-400 hover:bg-white/10" title="Warning Box">🚨 Alert</button>
+                  <span className="w-px h-4 bg-white/10 mx-1" />
+                  <button
+                    type="button"
+                    onClick={() => insertMarkdownSyntax('\n| Feature | Status | Description |\n| :--- | :---: | :--- |\n| Speed | ⚡ High | Next-gen rendering |\n| Security | 🛡️ Pass | End-to-end token |\n\n', '', '')}
+                    className="px-2 py-1 rounded text-xs font-medium text-emerald-400 hover:bg-white/10 flex items-center gap-1"
+                    title="Insert Markdown Table"
+                  >
+                    <TableIcon className="w-3.5 h-3.5" /> Table
+                  </button>
+                  <button type="button" onClick={() => insertMarkdownSyntax('```javascript\n', '\n```', '// Code snippet')} className="px-2 py-1 rounded text-xs font-mono text-purple-400 hover:bg-white/10" title="Code Block">&lt;/&gt; Code</button>
+                  <button type="button" onClick={() => insertMarkdownSyntax('<span style="color: #06B6D4">', '</span>', 'colored text')} className="px-2 py-1 rounded text-xs text-cyan-400 hover:bg-white/10" title="Colored Text">🎨 Color</button>
+                  <button type="button" onClick={() => insertMarkdownSyntax('[', '](https://example.com)', 'Link label')} className="px-2 py-1 rounded text-xs text-blue-400 hover:bg-white/10" title="Insert Link">🔗 Link</button>
+                  <button type="button" onClick={() => insertMarkdownSyntax('---\n', '', '')} className="px-2 py-1 rounded text-xs text-slate-400 hover:bg-white/10" title="Divider">— Line</button>
+                  
+                  {/* Inline Image Upload in Toolbar */}
+                  <div className="ml-auto flex items-center gap-1">
+                    <CloudinaryUpload
+                      label="Insert Img"
+                      onUpload={(imgUrl) => {
+                        insertMarkdownSyntax(`![Illustration](${imgUrl})\n`, '', '');
+                        showToast("Image inserted into article!", "success");
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* ── Beside Split Screen / Single Pane Area ────── */}
+                <div className={`rounded-2xl overflow-hidden border border-white/[0.08] bg-[#070B16] ${
+                  editorMode === "split" ? "grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-white/[0.08]" : ""
+                }`}>
+                  {/* Left Column: Markdown Editor */}
+                  {(editorMode === "edit" || editorMode === "split") && (
+                    <div className="flex flex-col">
+                      <div className="px-4 py-2 bg-white/[0.02] border-b border-white/[0.05] flex items-center justify-between text-[11px] font-mono text-[#64748B]">
+                        <span className="flex items-center gap-1.5 text-purple-300">
+                          <Edit2 className="w-3 h-3" /> MARKDOWN & RICH PASTE WRITER
+                        </span>
+                        <span>{form.markdown?.length || 0} chars · Paste Word/ChatGPT here!</span>
+                      </div>
+                      <textarea
+                        ref={editorTextareaRef}
+                        value={form.markdown || ""}
+                        onChange={(e) => setForm(f => ({ ...f, markdown: e.target.value }))}
+                        onPaste={handleSmartPaste}
+                        rows={24}
+                        placeholder={`# Article Title\n\nStart writing in Markdown or paste formatted content directly from Word / ChatGPT...\n\n| Endpoint | Method | Description |\n| :--- | :---: | :--- |\n| /api/blog | GET | Retrieve all articles |\n\n> 💡 **Tip:** Auto-converts tables, colors, code, and images into clean markdown!\n\n\`\`\`javascript\nconst app = express();\napp.listen(5000);\n\`\`\`\n`}
+                        className="w-full h-full min-h-[480px] max-h-[780px] p-5 bg-transparent text-slate-100 font-mono text-sm leading-relaxed focus:outline-none resize-y placeholder:text-[#334155]"
+                      />
+                    </div>
+                  )}
+
+                  {/* Right Column: Beside Split Live Formatted Real Website Preview */}
+                  {(editorMode === "preview" || editorMode === "split") && (
+                    <div className="flex flex-col bg-[#050813]">
+                      <div className="px-4 py-2 bg-white/[0.02] border-b border-white/[0.05] flex items-center justify-between text-[11px] font-mono text-[#64748B]">
+                        <span className="flex items-center gap-1.5 text-cyan-400 font-bold">
+                          <Eye className="w-3.5 h-3.5" /> LIVE REAL-WEBSITE PREVIEW
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[#A855F7]">
+                            Font: {form.styling?.fontFamily || "inter"} · Size: {form.styling?.fontSize || "standard"}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="p-6 max-h-[780px] overflow-y-auto" data-lenis-prevent="true">
+                        {form.markdown ? (
+                          <div
+                            className={`w-full transition-all duration-300 ${
+                              form.styling?.layoutWidth === "wide"
+                                ? "max-w-4xl"
+                                : form.styling?.layoutWidth === "ultrawide"
+                                ? "max-w-5xl"
+                                : "max-w-3xl"
+                            } ${
+                              form.styling?.fontFamily === "space"
+                                ? "font-['Space_Grotesk',sans-serif]"
+                                : form.styling?.fontFamily === "merriweather"
+                                ? "font-['Merriweather',serif]"
+                                : form.styling?.fontFamily === "mono"
+                                ? "font-['JetBrains_Mono',monospace]"
+                                : "font-['Inter',sans-serif]"
+                            } ${
+                              form.styling?.fontSize === "compact"
+                                ? "text-[15px]"
+                                : form.styling?.fontSize === "large"
+                                ? "text-[19px]"
+                                : form.styling?.fontSize === "xlarge"
+                                ? "text-[21px]"
+                                : "text-[17px]"
+                            } ${
+                              form.styling?.lineHeight === "compact"
+                                ? "leading-[1.65]"
+                                : form.styling?.lineHeight === "relaxed"
+                                ? "leading-[2.1]"
+                                : "leading-[1.85]"
+                            }`}
+                          >
+                            <ReactMarkdown
+                              remarkPlugins={[remarkGfm]}
+                              rehypePlugins={[rehypeRaw]}
+                              components={{
+                                // Responsive glassmorphic tables with gradient headers & glowing row hovers
+                                table: ({ children }) => (
+                                  <div className="my-7 overflow-x-auto rounded-2xl border border-white/10 bg-[#070b16]/95 shadow-[0_12px_40px_rgba(0,0,0,0.65)] backdrop-blur-md">
+                                    <table className="w-full text-left border-collapse text-xs sm:text-sm">
+                                      {children}
+                                    </table>
+                                  </div>
+                                ),
+                                thead: ({ children }) => (
+                                  <thead className="bg-gradient-to-r from-purple-950/60 via-cyan-950/50 to-purple-950/40 border-b border-white/15 text-white font-space font-bold uppercase text-[11px] tracking-wider">
+                                    {children}
+                                  </thead>
+                                ),
+                                th: ({ children }) => (
+                                  <th className="px-4 py-3.5 text-cyan-300 font-bold whitespace-nowrap">
+                                    {children}
+                                  </th>
+                                ),
+                                tr: ({ children }) => (
+                                  <tr className="border-b border-white/[0.06] hover:bg-white/[0.04] transition-colors odd:bg-transparent even:bg-white/[0.015]">
+                                    {children}
+                                  </tr>
+                                ),
+                                td: ({ children }) => (
+                                  <td className="px-4 py-3 text-slate-300 font-mono text-xs leading-relaxed">
+                                    {children}
+                                  </td>
+                                ),
+                                // Smart image detector: badges vs full illustrations
+                                img: ({ node, src, alt, ...props }) => {
+                                  const isBadge = src?.includes('shields.io') || src?.includes('badge') || (alt && alt.toLowerCase().includes('badge'));
+                                  if (isBadge) {
+                                    return (
+                                      <img
+                                        src={src}
+                                        alt={alt || "badge"}
+                                        className="inline-block my-1 mr-2 h-6 object-contain align-middle hover:scale-105 transition-transform"
+                                        {...props}
+                                      />
+                                    );
+                                  }
+                                  return (
+                                    <div className="my-6 rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-[#070b16]">
+                                      <img src={src} alt={alt} className="w-full h-auto object-cover max-h-[500px]" {...props} />
+                                      {alt && alt !== 'image' && (
+                                        <p className="text-center text-xs text-slate-400 py-2 border-t border-white/5 bg-white/[0.02] font-mono">
+                                          ▲ {alt}
+                                        </p>
+                                      )}
+                                    </div>
+                                  );
+                                },
+                                // Mac Terminal Code blocks with copy button
+                                pre: ({ children }) => <>{children}</>,
+                                code: ({ node, inline, className, children, ...props }) => {
+                                  const match = /language-(\w+)/.exec(className || '');
+                                  const codeString = String(children).replace(/\n$/, '');
+                                  if (!inline && (match || codeString.includes('\n'))) {
+                                    return (
+                                      <LiveCodeBlock
+                                        codeText={codeString}
+                                        lang={match ? match[1] : 'code'}
+                                      />
+                                    );
+                                  }
+                                  return (
+                                    <code className="text-purple-300 bg-purple-950/60 border border-purple-500/30 px-1.5 py-0.5 rounded text-xs font-mono" {...props}>
+                                      {children}
+                                    </code>
+                                  );
+                                },
+                                // Smart callout blockquotes
+                                blockquote: ({ children }) => (
+                                  <blockquote className="my-6 p-4 sm:p-5 rounded-2xl border-l-4 border-l-purple-500 bg-gradient-to-r from-purple-500/[0.1] via-cyan-500/[0.04] to-transparent border border-white/5 text-slate-200 shadow-md">
+                                    {children}
+                                  </blockquote>
+                                ),
+                                // Headings
+                                h1: ({ children }) => (
+                                  <h1 className="text-2xl sm:text-3xl font-space font-bold text-white border-b border-white/10 pb-3 mt-8 mb-4">
+                                    {children}
+                                  </h1>
+                                ),
+                                h2: ({ children }) => (
+                                  <h2 className="text-xl sm:text-2xl font-space font-bold text-white mt-8 mb-3 flex items-center gap-2">
+                                    <span className="w-1.5 h-5 rounded-full bg-cyan-400 inline-block" />
+                                    {children}
+                                  </h2>
+                                ),
+                                h3: ({ children }) => (
+                                  <h3 className="text-lg sm:text-xl font-space font-semibold text-[#C4B5FD] mt-6 mb-2">
+                                    {children}
+                                  </h3>
+                                ),
+                                p: ({ children }) => (
+                                  <p className="my-4 text-slate-300 leading-relaxed">
+                                    {children}
+                                  </p>
+                                ),
+                                a: ({ href, children }) => (
+                                  <a href={href} target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:text-cyan-300 font-semibold underline underline-offset-4 decoration-cyan-400/40 hover:decoration-cyan-300 transition-colors">
+                                    {children}
+                                  </a>
+                                ),
+                                hr: () => (
+                                  <hr className="my-8 border-none h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+                                ),
+                                ul: ({ children }) => (
+                                  <ul className="list-disc pl-6 my-4 space-y-1.5 text-slate-300">
+                                    {children}
+                                  </ul>
+                                ),
+                                ol: ({ children }) => (
+                                  <ol className="list-decimal pl-6 my-4 space-y-1.5 text-slate-300">
+                                    {children}
+                                  </ol>
+                                ),
+                              }}
+                            >
+                              {form.markdown}
+                            </ReactMarkdown>
+                          </div>
+                        ) : (
+                          <div className="text-center py-24 text-[#475569]">
+                            <p className="text-4xl mb-3">👁️</p>
+                            <p className="text-base font-bold text-white font-space">Real Website Live Preview</p>
+                            <p className="text-xs text-[#64748B] mt-1 max-w-sm mx-auto">
+                              Start typing on the left, paste from Word/ChatGPT, or drop a document to see real-time tables, colors, and typography!
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* ═══ Section 5: Recommended & Referred Articles Selector ══ */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-[rgba(236,72,153,0.03)] border border-[rgba(236,72,153,0.18)] space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-[rgba(255,255,255,0.06)]">
+                  <div className="flex items-center gap-2">
+                    <span className="text-pink-400 font-bold text-sm">5.</span>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-white">
+                      Recommended & Referred Articles
+                    </h4>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-pink-500/20 text-pink-300 border border-pink-500/30">
+                      {(form.recommendedPosts || []).length} Curated
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowRecPicker(true)}
+                    className="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-pink-600/30 to-purple-600/30 border border-pink-500/40 hover:border-pink-400 text-pink-200 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-sm"
+                  >
+                    <BookOpen className="w-3.5 h-3.5 text-pink-300" />
+                    Browse & Add Articles ({blogPosts.filter(p => !editingPostId || p.id !== editingPostId).length} available)
                   </button>
                 </div>
-              )}
 
-              {/* ── Optional Link Field (shown for all block types except divider) ── */}
-              {addingType !== "divider" && (
-                <div className="border-t border-[rgba(255,255,255,0.06)] pt-3 space-y-2">
-                  <p className="text-[10px] font-bold text-[#06B6D4] uppercase tracking-widest flex items-center gap-1.5">
-                    <span>🔗</span> Block Link <span className="text-[#475569] normal-case font-normal">(optional)</span>
-                  </p>
-                  <input
-                    type="url"
-                    placeholder="https://example.com — users click this to visit"
-                    value={newBlock.link || ""}
-                    onChange={(e) => setNewBlock(nb => ({ ...nb, link: e.target.value }))}
-                    className="w-full px-4 py-2.5 rounded-xl bg-[rgba(6,182,212,0.04)] border border-[rgba(6,182,212,0.15)] text-white placeholder:text-[#475569] focus:outline-none focus:border-[rgba(6,182,212,0.4)] text-sm"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Link label (e.g. Read more, View demo, Source code)"
-                    value={newBlock.linkLabel || ""}
-                    onChange={(e) => setNewBlock(nb => ({ ...nb, linkLabel: e.target.value }))}
-                    className="w-full px-4 py-2.5 rounded-xl bg-[rgba(255,255,255,0.03)] border border-[rgba(255,255,255,0.07)] text-white placeholder:text-[#475569] focus:outline-none focus:border-[rgba(6,182,212,0.4)] text-sm"
-                  />
+                <p className="text-xs text-[#94A3B8]">
+                  Hand-pick specific articles to display in the Right Sidebar's <strong className="text-pink-300">"Recommended Articles"</strong> section and at the bottom of the article.
+                </p>
+
+                {/* Recommended Articles Modal Picker */}
+                {showRecPicker && (
+                  <div className="p-4 sm:p-5 rounded-2xl bg-[#090E1A] border border-pink-500/40 shadow-2xl space-y-3.5 animate-fadeIn">
+                    <div className="flex items-center justify-between pb-2 border-b border-white/[0.08]">
+                      <div className="flex items-center gap-2">
+                        <BookOpen className="w-4 h-4 text-pink-400" />
+                        <h4 className="font-space font-bold text-white text-sm">Pick Recommended Articles</h4>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowRecPicker(false)}
+                        className="p-1 rounded-lg text-[#94A3B8] hover:text-white hover:bg-white/[0.08] transition-all"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <div className="relative">
+                      <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#64748B]" />
+                      <input
+                        type="text"
+                        value={recSearch}
+                        onChange={(e) => setRecSearch(e.target.value)}
+                        placeholder="Search articles by title, tag, or topic..."
+                        className="w-full pl-8 pr-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.08] text-white text-xs placeholder:text-[#475569] focus:outline-none focus:border-pink-500"
+                      />
+                    </div>
+
+                    <div className="max-h-72 overflow-y-auto space-y-2 pr-1">
+                      {blogPosts
+                        .filter(p => (!editingPostId || p.id !== editingPostId))
+                        .filter(p => !recSearch || p.title?.toLowerCase().includes(recSearch.toLowerCase()) || p.tag?.toLowerCase().includes(recSearch.toLowerCase()))
+                        .map(p => {
+                          const key = p.slug || String(p.id);
+                          const isPicked = (form.recommendedPosts || []).some(
+                            k => String(k) === String(key) || String(k) === String(p.id) || String(k) === p.slug
+                          );
+                          return (
+                            <div
+                              key={p.id}
+                              onClick={() => handleToggleRecommendedPost(p)}
+                              className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer ${
+                                isPicked
+                                  ? "bg-pink-500/15 border-pink-500/50 ring-1 ring-pink-500/30"
+                                  : "bg-white/[0.02] border-white/[0.06] hover:border-pink-500/40 hover:bg-white/[0.04]"
+                              }`}
+                            >
+                              <div className="flex items-center gap-3 min-w-0">
+                                <span className="text-base shrink-0 p-1.5 rounded-lg bg-white/[0.03] border border-white/5">
+                                  {p.emoji || "📝"}
+                                </span>
+                                <div className="min-w-0">
+                                  <p className="text-xs font-bold text-white truncate">{p.title}</p>
+                                  <div className="flex items-center gap-2 mt-0.5 text-[10px] text-[#94A3B8] font-mono">
+                                    <span className="text-pink-300">{p.tag || "Article"}</span>
+                                    <span>•</span>
+                                    <span>{p.readTime || "5 min read"}</span>
+                                    {p.date && (
+                                      <>
+                                        <span>•</span>
+                                        <span>{p.date}</span>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="shrink-0">
+                                {isPicked ? (
+                                  <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-pink-500/30 text-pink-200 border border-pink-500/50 flex items-center gap-1">
+                                    <Check className="w-3.5 h-3.5 text-pink-300" /> Recommended
+                                  </span>
+                                ) : (
+                                  <span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-white/[0.05] text-[#94A3B8] hover:text-white border border-white/10 flex items-center gap-1">
+                                    <Plus className="w-3.5 h-3.5" /> Recommend
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+
+                    <div className="pt-2 border-t border-white/[0.06] flex items-center justify-between">
+                      <span className="text-[11px] text-[#64748B]">
+                        Articles selected here will be prioritized in the reader's sidebar.
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setShowRecPicker(false)}
+                        className="px-3.5 py-1 rounded-lg bg-white/[0.06] hover:bg-white/[0.1] text-white text-xs font-semibold transition-all"
+                      >
+                        Done
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Selected Recommended Articles Cards */}
+                <div className="space-y-2">
+                  {(form.recommendedPosts || []).map((targetKey, idx) => {
+                    const matchPost = blogPosts.find(p => p.slug === targetKey || String(p.id) === String(targetKey));
+                    return (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between p-3 rounded-xl bg-white/[0.02] border border-white/[0.06] hover:border-pink-500/30 transition-all"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <span className="w-6 h-6 rounded-full bg-pink-500/20 border border-pink-500/30 text-pink-300 text-[10px] font-mono font-bold flex items-center justify-center shrink-0">
+                            #{idx + 1}
+                          </span>
+                          <span className="text-sm shrink-0">
+                            {matchPost?.emoji || "📝"}
+                          </span>
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-white truncate">
+                              {matchPost?.title || `Article (${targetKey})`}
+                            </p>
+                            <p className="text-[10px] text-pink-300 font-mono">
+                              {matchPost?.tag || "Article"} {matchPost?.readTime ? `• ${matchPost.readTime}` : ""}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => handleMoveRecommendedPost(idx, 'up')}
+                            disabled={idx === 0}
+                            className="p-1 text-[#64748B] hover:text-white disabled:opacity-20 transition-colors"
+                            title="Move recommendation up"
+                          >
+                            <ArrowUp className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleMoveRecommendedPost(idx, 'down')}
+                            disabled={idx === (form.recommendedPosts || []).length - 1}
+                            className="p-1 text-[#64748B] hover:text-white disabled:opacity-20 transition-colors"
+                            title="Move recommendation down"
+                          >
+                            <ArrowDown className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveRecommendedPost(targetKey)}
+                            className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors ml-1"
+                            title="Remove recommendation"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {(!form.recommendedPosts || form.recommendedPosts.length === 0) && (
+                    <div
+                      onClick={() => setShowRecPicker(true)}
+                      className="p-4 rounded-xl border border-dashed border-pink-500/20 hover:border-pink-500/40 bg-pink-500/[0.01] hover:bg-pink-500/[0.03] text-center cursor-pointer transition-all"
+                    >
+                      <BookOpen className="w-6 h-6 mx-auto text-pink-400 mb-1 opacity-70" />
+                      <p className="text-xs font-semibold text-white">No Specific Articles Curated (Auto-Matched by Category)</p>
+                      <p className="text-[11px] text-[#64748B] mt-0.5">
+                        Click here to hand-pick recommended articles for the reader sidebar.
+                      </p>
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
 
-              <div className="flex gap-2 pt-1">
-                <button
-                  onClick={commitBlock}
-                  className="flex items-center gap-1.5 px-5 py-2 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#A855F7] text-white text-xs font-bold hover:opacity-90 transition-opacity"
-                >
-                  {editingIdx !== null ? <Save className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5" />} {editingIdx !== null ? "Update Block" : "Add Block"}
-                </button>
-                <button
-                  onClick={() => { setAddingType(null); setNewBlock({}); }}
-                  className="px-4 py-2 rounded-xl border border-[rgba(255,255,255,0.08)] text-[#64748B] text-xs font-semibold hover:text-white transition-colors"
-                >
-                  Cancel
-                </button>
+              {/* ═══ Section 6: Publishing & Status Controls ════ */}
+              <div className="p-4 rounded-2xl bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.06)] flex flex-wrap items-center justify-between gap-4">
+                <div className="flex flex-wrap items-center gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(form.showOnHome)}
+                      onChange={(e) => setForm(f => ({ ...f, showOnHome: e.target.checked }))}
+                      className="w-4 h-4 rounded text-amber-500 focus:ring-0 bg-white/5 border-white/20"
+                    />
+                    <span className="text-xs font-semibold text-white flex items-center gap-1">
+                      <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" /> Feature on Home Page
+                    </span>
+                  </label>
+
+                  {form.showOnHome && (
+                    <div className="flex items-center gap-1.5 text-xs text-[#94A3B8]">
+                      <span>Position:</span>
+                      <input
+                        type="number"
+                        min="1"
+                        max="10"
+                        value={form.homeOrder || 1}
+                        onChange={(e) => setForm(f => ({ ...f, homeOrder: parseInt(e.target.value) || 1 }))}
+                        className="w-14 px-2 py-1 rounded bg-white/5 border border-white/10 text-white font-mono text-center"
+                      />
+                    </div>
+                  )}
+
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(form.hidden)}
+                      onChange={(e) => setForm(f => ({ ...f, hidden: e.target.checked }))}
+                      className="w-4 h-4 rounded text-red-500 focus:ring-0 bg-white/5 border-white/20"
+                    />
+                    <span className="text-xs font-semibold text-[#94A3B8]">
+                      Save as Draft / Hidden
+                    </span>
+                  </label>
+                </div>
+
+                <div className="flex items-center gap-2.5">
+                  <button
+                    type="button"
+                    onClick={handleCancel}
+                    className="px-5 py-2.5 rounded-xl border border-white/10 text-xs font-semibold text-[#94A3B8] hover:text-white transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    disabled={saving}
+                    onClick={handleSave}
+                    className="flex items-center gap-2 px-7 py-2.5 rounded-xl bg-gradient-to-r from-[#7C3AED] via-[#6366F1] to-[#06B6D4] text-white text-sm font-bold shadow-xl hover:opacity-95 transition-all disabled:opacity-50 active:scale-95"
+                  >
+                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                    <span>{saving ? "Saving to Database..." : (editingPostId ? "Update Article" : "Publish Article")}</span>
+                  </button>
+                </div>
               </div>
             </div>
-          )}
-
-          {/* Bottom Save Button */}
-          {blocks.length > 0 && (
-            <div className="flex justify-end pt-4 border-t border-[rgba(255,255,255,0.06)] mt-4">
-              <button
-                onClick={saveBlocks}
-                disabled={saving}
-                className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-[#7C3AED] to-[#06B6D4] text-white text-sm font-bold hover:opacity-90 transition-opacity disabled:opacity-50"
-              >
-                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />} {saving ? "Saving to Database..." : "Save All Content Blocks"}
-              </button>
-            </div>
-          )}
-        </>
-      )}
-    </SectionCard>
+          </SectionCard>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -5397,13 +8109,29 @@ function EducationTab({ showToast }) {
             <div key={idx} className="p-5 rounded-xl bg-[rgba(255,255,255,0.02)] border border-[rgba(255,255,255,0.05)] relative group">
               <button onClick={() => { if(window.confirm("Delete this event?")) { const copy = [...form.timeline]; copy.splice(idx,1); setForm({...form, timeline: copy}); } }} className="absolute top-4 right-4 text-red-400 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[rgba(239,68,68,0.1)] p-1.5 rounded-lg"><Trash2 className="w-4 h-4"/></button>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-5 pr-10">
-                <Field label="Year" value={item.year} onChange={(e) => { const copy = [...form.timeline]; copy[idx].year = e.target.value; setForm({...form, timeline: copy}); }} placeholder="2024" />
-                <Field label="Title" value={item.title} onChange={(e) => { const copy = [...form.timeline]; copy[idx].title = e.target.value; setForm({...form, timeline: copy}); }} placeholder="Milestone Title" />
-                <Field label="Subtitle" value={item.subtitle} onChange={(e) => { const copy = [...form.timeline]; copy[idx].subtitle = e.target.value; setForm({...form, timeline: copy}); }} placeholder="Description..." />
-                <div className="flex gap-2">
-                  <div className="flex-1"><Field label="Icon" value={item.icon} onChange={(e) => { const copy = [...form.timeline]; copy[idx].icon = e.target.value; setForm({...form, timeline: copy}); }} placeholder="rocket" /></div>
-                  <div className="w-16"><Field label="Color" type="color" value={item.color} onChange={(e) => { const copy = [...form.timeline]; copy[idx].color = e.target.value; setForm({...form, timeline: copy}); }} /></div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-4 mb-5 pr-10">
+                <div className="lg:col-span-2">
+                  <Field label="Year" value={item.year} onChange={(e) => { const copy = [...form.timeline]; copy[idx].year = e.target.value; setForm({...form, timeline: copy}); }} placeholder="2024" />
+                </div>
+                <div className="lg:col-span-3">
+                  <Field label="Title" value={item.title} onChange={(e) => { const copy = [...form.timeline]; copy[idx].title = e.target.value; setForm({...form, timeline: copy}); }} placeholder="Milestone Title" />
+                </div>
+                <div className="lg:col-span-3">
+                  <Field label="Subtitle" value={item.subtitle} onChange={(e) => { const copy = [...form.timeline]; copy[idx].subtitle = e.target.value; setForm({...form, timeline: copy}); }} placeholder="Description..." />
+                </div>
+                <div className="lg:col-span-2">
+                  <Field label="Icon" value={item.icon} onChange={(e) => { const copy = [...form.timeline]; copy[idx].icon = e.target.value; setForm({...form, timeline: copy}); }} placeholder="code" />
+                </div>
+                <div className="lg:col-span-2">
+                  <ColorPickerControl
+                    label="Color"
+                    value={item.color || "#3B82F6"}
+                    onChange={(newColor) => {
+                      const copy = [...form.timeline];
+                      copy[idx].color = newColor;
+                      setForm({ ...form, timeline: copy });
+                    }}
+                  />
                 </div>
               </div>
               

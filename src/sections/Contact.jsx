@@ -66,12 +66,18 @@ export default function Contact() {
   return (
     <section
       id="contact"
-      className="relative py-10 md:py-20 bg-[#02050D] overflow-hidden"
+      className="relative py-10 md:py-20 bg-[#02050D] overflow-hidden section-contain"
       aria-label="Contact"
     >
       {/* Background */}
-      <div className="absolute top-0 left-1/4 w-[500px] h-[500px] rounded-full bg-[#2563EB] opacity-[0.04] blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] rounded-full bg-[#7C3AED] opacity-[0.04] blur-[100px] pointer-events-none" />
+      <div 
+        className="absolute top-0 left-1/4 w-[500px] h-[500px] rounded-full pointer-events-none opacity-40"
+        style={{ background: "radial-gradient(circle, rgba(37,99,235,0.08) 0%, transparent 70%)" }}
+      />
+      <div 
+        className="absolute bottom-0 right-1/4 w-[400px] h-[400px] rounded-full pointer-events-none opacity-40"
+        style={{ background: "radial-gradient(circle, rgba(124,58,237,0.08) 0%, transparent 70%)" }}
+      />
       <div className="absolute inset-0 bg-grid-pattern opacity-20 pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -84,7 +90,10 @@ export default function Contact() {
           style={{ background: "rgba(7,17,31,0.9)" }}
         >
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#2563EB] to-transparent" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 rounded-full bg-[#2563EB] opacity-[0.04] blur-[80px] pointer-events-none" />
+          <div 
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 rounded-full pointer-events-none opacity-30"
+            style={{ background: "radial-gradient(circle, rgba(37,99,235,0.15) 0%, transparent 70%)" }}
+          />
 
           <span
             className="section-label mb-4 mx-auto"

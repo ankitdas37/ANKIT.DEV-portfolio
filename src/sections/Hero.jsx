@@ -11,14 +11,7 @@ import { useNavigate } from "react-router-dom";
 import { useData } from "../context/DataContext";
 import heroBg3d from "../assets/hero-bg-3d.jpg";
 
-const particles = Array.from({ length: 30 }, (_, i) => ({
-  id: i,
-  x: Math.random() * 100,
-  y: Math.random() * 100,
-  size: Math.random() * 3 + 1,
-  duration: Math.random() * 6 + 4,
-  delay: Math.random() * 4,
-}));
+
 
 const codeSymbols = ["</>", "{}", "[]", "()", "=>", "&&", "||", "!="];
 
@@ -83,76 +76,43 @@ export default function Hero() {
     >
       {/* Background Image */}
       <div className="absolute inset-0">
-        <motion.img
+        <img
           src={heroBg3d}
           alt="Futuristic developer workspace"
-          className="w-full h-full object-cover object-center"
-          animate={{ scale: [1, 1.03, 1] }}
-          transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+          className="w-full h-full object-cover object-center gpu-accelerated"
           loading="eager"
         />
 
         {/* Multi-layer gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#02050D] via-[rgba(2,5,13,0.85)] via-50% to-[rgba(2,5,13,0.35)]" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#02050D] via-[rgba(2,5,13,0.88)] via-55% to-[rgba(2,5,13,0.4)]" />
         <div className="absolute inset-0 bg-gradient-to-t from-[#02050D] via-transparent to-[rgba(2,5,13,0.3)]" />
-        {/* Ambient blue/purple glow */}
-        <div className="absolute top-1/4 left-1/3 w-96 h-96 rounded-full bg-[#2563EB] opacity-5 blur-[120px]" />
-        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full bg-[#7C3AED] opacity-8 blur-[100px]" />
+        {/* Lightweight radial ambient glow (no expensive blur filter) */}
+        <div 
+          className="absolute top-1/4 left-1/3 w-96 h-96 rounded-full pointer-events-none opacity-40"
+          style={{ background: "radial-gradient(circle, rgba(37,99,235,0.12) 0%, transparent 70%)" }}
+        />
+        <div 
+          className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full pointer-events-none opacity-40"
+          style={{ background: "radial-gradient(circle, rgba(124,58,237,0.14) 0%, transparent 70%)" }}
+        />
       </div>
 
-      {/* Floating Particles */}
+      {/* Floating code symbols (subtle static accents) */}
       <div
         className="absolute inset-0 overflow-hidden pointer-events-none"
         aria-hidden="true"
       >
-        {particles.map((p) => (
-          <motion.div
-            key={p.id}
-            className="absolute rounded-full bg-[#2563EB]"
-            style={{
-              left: `${p.x}%`,
-              top: `${p.y}%`,
-              width: p.size,
-              height: p.size,
-              opacity: 0.3,
-            }}
-            animate={{
-              y: [0, -30, 0],
-              opacity: [0.2, 0.6, 0.2],
-              scale: [1, 1.5, 1],
-            }}
-            transition={{
-              duration: p.duration,
-              delay: p.delay,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
-          />
-        ))}
-
-        {/* Floating code symbols */}
         {codeSymbols.slice(0, 5).map((sym, i) => (
-          <motion.div
+          <div
             key={sym}
-            className="absolute font-mono text-xs font-bold text-[#2563EB] opacity-20"
+            className="absolute font-mono text-xs font-bold text-[#2563EB] opacity-15"
             style={{
               left: `${65 + (i % 3) * 12}%`,
-              top: `${15 + i * 12}%`,
-            }}
-            animate={{
-              y: [0, -15, 0],
-              opacity: [0.1, 0.3, 0.1],
-              rotate: [0, i % 2 === 0 ? 5 : -5, 0],
-            }}
-            transition={{
-              duration: 4 + i,
-              delay: i * 0.8,
-              repeat: Infinity,
-              ease: "easeInOut",
+              top: `${15 + i * 14}%`,
             }}
           >
             {sym}
-          </motion.div>
+          </div>
         ))}
       </div>
 

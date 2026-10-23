@@ -48,14 +48,20 @@ export default function Testimonials() {
 
   return (
     <section
-      className="relative py-10 md:py-20 bg-[#050B16] overflow-hidden"
+      className="relative py-10 md:py-20 bg-[#050B16] overflow-hidden section-contain"
       aria-label="Testimonials"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
       {/* Ambient glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full bg-[#7C3AED] opacity-[0.04] blur-[160px] pointer-events-none" />
-      <div className="absolute top-0 right-0 w-[300px] h-[300px] rounded-full bg-[#2563EB] opacity-[0.03] blur-[120px] pointer-events-none" />
+      <div 
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full pointer-events-none opacity-40"
+        style={{ background: "radial-gradient(circle, rgba(124,58,237,0.08) 0%, transparent 70%)" }}
+      />
+      <div 
+        className="absolute top-0 right-0 w-[300px] h-[300px] rounded-full pointer-events-none opacity-40"
+        style={{ background: "radial-gradient(circle, rgba(37,99,235,0.08) 0%, transparent 70%)" }}
+      />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 

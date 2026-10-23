@@ -30,45 +30,23 @@ export default function Gallery() {
   if (!visibleFolders || visibleFolders.length === 0) return null;
 
   return (
-    <section id="gallery" className="relative py-10 md:py-20 bg-[#02050D] overflow-hidden" aria-label="Gallery and Achievements">
+    <section id="gallery" className="relative py-10 md:py-20 bg-[#02050D] overflow-hidden section-contain" aria-label="Gallery and Achievements">
 
-      {/* Unique Animated Aurora Background */}
+      {/* Lightweight Ambient Aurora Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
         {/* Deep background texture */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[rgba(15,23,42,0.6)] via-[#02050D] to-[#02050D]" />
 
-        {/* Animated Aurora Blobs */}
-        <motion.div
-          animate={{
-            rotate: [0, 90, 180, 270, 360],
-            scale: [1, 1.2, 1, 1.3, 1],
-            x: ['-10%', '10%', '-5%', '15%', '-10%'],
-            y: ['-10%', '15%', '5%', '-10%', '-10%'],
+        {/* Static Ambient Aurora Gradients (Zero blur cost, 120fps smooth) */}
+        <div 
+          className="absolute inset-0 pointer-events-none opacity-40"
+          style={{
+            backgroundImage: `
+              radial-gradient(ellipse at 15% 15%, rgba(139, 92, 246, 0.08) 0%, transparent 45%),
+              radial-gradient(ellipse at 85% 85%, rgba(6, 182, 212, 0.07) 0%, transparent 45%),
+              radial-gradient(ellipse at 75% 25%, rgba(236, 72, 153, 0.05) 0%, transparent 35%)
+            `,
           }}
-          transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-          className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] rounded-[40%_60%_70%_30%] bg-gradient-to-br from-[#8B5CF6] to-[#EC4899] opacity-[0.06] blur-[100px] sm:blur-[140px] mix-blend-screen"
-        />
-
-        <motion.div
-          animate={{
-            rotate: [360, 270, 180, 90, 0],
-            scale: [1, 1.3, 1.1, 1.4, 1],
-            x: ['10%', '-10%', '15%', '-5%', '10%'],
-            y: ['10%', '-15%', '-5%', '10%', '10%'],
-          }}
-          transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
-          className="absolute bottom-[-10%] right-[-10%] w-[60vw] h-[60vw] rounded-[60%_40%_30%_70%] bg-gradient-to-tl from-[#06B6D4] to-[#3B82F6] opacity-[0.05] blur-[100px] sm:blur-[140px] mix-blend-screen"
-        />
-
-        <motion.div
-          animate={{
-            rotate: [0, -90, -180, -270, -360],
-            scale: [1.2, 1, 1.3, 1.1, 1.2],
-            x: ['0%', '20%', '-20%', '10%', '0%'],
-            y: ['20%', '0%', '-20%', '10%', '20%'],
-          }}
-          transition={{ duration: 35, repeat: Infinity, ease: "linear" }}
-          className="absolute top-[20%] right-[20%] w-[40vw] h-[40vw] rounded-[30%_70%_50%_50%] bg-gradient-to-b from-[#F59E0B] to-[#EC4899] opacity-[0.04] blur-[100px] sm:blur-[120px] mix-blend-screen"
         />
 
         {/* Diagonal Light Rays */}

@@ -47,8 +47,14 @@ export default function Footer() {
       role="contentinfo"
     >
       {/* Background */}
-      <div className="absolute top-0 left-0 w-[400px] h-[400px] rounded-full bg-[#2563EB] opacity-[0.02] blur-[100px] pointer-events-none" />
-      <div className="absolute bottom-0 right-0 w-[300px] h-[300px] rounded-full bg-[#7C3AED] opacity-[0.03] blur-[80px] pointer-events-none" />
+      <div 
+        className="absolute top-0 left-0 w-[400px] h-[400px] rounded-full pointer-events-none opacity-30"
+        style={{ background: "radial-gradient(circle, rgba(37,99,235,0.08) 0%, transparent 70%)" }}
+      />
+      <div 
+        className="absolute bottom-0 right-0 w-[300px] h-[300px] rounded-full pointer-events-none opacity-30"
+        style={{ background: "radial-gradient(circle, rgba(124,58,237,0.09) 0%, transparent 70%)" }}
+      />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Main footer content */}

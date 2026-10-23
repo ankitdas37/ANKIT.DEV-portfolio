@@ -18,19 +18,26 @@ export default function MobileDock() {
     let lastY = window.scrollY;
     let timer = null;
 
+    let ticking = false;
     const onScroll = () => {
-      const currentY = window.scrollY;
-      if (currentY > lastY + 15 && currentY > 150) {
-        setScrollingDown(true);
-      } else if (currentY < lastY - 10 || currentY < 100) {
-        setScrollingDown(false);
-      }
-      lastY = currentY;
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const currentY = window.scrollY;
+          if (currentY > lastY + 20 && currentY > 150) {
+            setScrollingDown((prev) => (prev ? prev : true));
+          } else if (currentY < lastY - 15 || currentY < 100) {
+            setScrollingDown((prev) => (!prev ? prev : false));
+          }
+          lastY = currentY;
 
-      clearTimeout(timer);
-      timer = setTimeout(() => {
-        setScrollingDown(false);
-      }, 900);
+          clearTimeout(timer);
+          timer = setTimeout(() => {
+            setScrollingDown(false);
+          }, 900);
+          ticking = false;
+        });
+        ticking = true;
+      }
     };
 
     window.addEventListener("scroll", onScroll, { passive: true });

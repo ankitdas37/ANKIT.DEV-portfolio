@@ -4,29 +4,13 @@ import { MessageSquare, Code2, Rocket, ArrowRight, Users } from "lucide-react";
 
 export default function ContactCTA() {
   return (
-    <section className="relative py-10 md:py-20 overflow-hidden bg-[#030510]" aria-label="Contact Call to Action">
-      {/* Background Particles / Stars */}
+    <section className="relative py-10 md:py-20 overflow-hidden bg-[#030510] section-contain" aria-label="Contact Call to Action">
+      {/* Background Subtle Stars / Accents */}
       <div className="absolute inset-0 pointer-events-none">
-        <motion.div
-          className="absolute top-20 left-[20%] w-1.5 h-1.5 rounded-full bg-[#38BDF8]"
-          animate={{ opacity: [0.2, 1, 0.2], scale: [1, 1.5, 1] }}
-          transition={{ duration: 3, repeat: Infinity }}
-        />
-        <motion.div
-          className="absolute top-40 right-[25%] w-1.5 h-1.5 rounded-full bg-[#38BDF8]"
-          animate={{ opacity: [0.2, 1, 0.2], scale: [1, 1.5, 1] }}
-          transition={{ duration: 4, repeat: Infinity, delay: 1 }}
-        />
-        <motion.div
-          className="absolute bottom-32 left-[30%] w-1.5 h-1.5 rounded-full bg-[#A855F7]"
-          animate={{ opacity: [0.2, 1, 0.2], scale: [1, 1.5, 1] }}
-          transition={{ duration: 3.5, repeat: Infinity, delay: 0.5 }}
-        />
-        <motion.div
-          className="absolute bottom-40 right-[15%] w-1.5 h-1.5 rounded-full bg-[#A855F7]"
-          animate={{ opacity: [0.2, 1, 0.2], scale: [1, 1.5, 1] }}
-          transition={{ duration: 2.5, repeat: Infinity, delay: 1.5 }}
-        />
+        <div className="absolute top-20 left-[20%] w-1.5 h-1.5 rounded-full bg-[#38BDF8] opacity-60 shadow-[0_0_8px_#38BDF8]" />
+        <div className="absolute top-40 right-[25%] w-1.5 h-1.5 rounded-full bg-[#38BDF8] opacity-60 shadow-[0_0_8px_#38BDF8]" />
+        <div className="absolute bottom-32 left-[30%] w-1.5 h-1.5 rounded-full bg-[#A855F7] opacity-60 shadow-[0_0_8px_#A855F7]" />
+        <div className="absolute bottom-40 right-[15%] w-1.5 h-1.5 rounded-full bg-[#A855F7] opacity-60 shadow-[0_0_8px_#A855F7]" />
       </div>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 relative z-10 text-center">

@@ -43,10 +43,16 @@ export function DataProvider({ children }) {
   const [projects, setProjects] = useState([]);
   const [loadingProjects, setLoadingProjects] = useState(true);
   const [categories, setCategories] = useState([]);
-  const [gallery,      setGallery]      = useState([]);
-  const [certificates, setCertificates] = useState([]);
-  const [testimonials, setTestimonials] = useState([]);
-  const [blogPosts,    setBlogPosts]    = useState([]);
+  const [gallery,      setGallery]      = useState(() => load(LS.gallery, []));
+  const [certificates, setCertificates] = useState(() => load(LS.certificates, []));
+  const [testimonials, setTestimonials] = useState(() => load(LS.testimonials, []));
+  const [blogPosts,    setBlogPosts]    = useState(() => load(LS.blogPosts, []));
+
+  useEffect(() => {
+    if (certificates && certificates.length > 0) {
+      save(LS.certificates, certificates);
+    }
+  }, [certificates]);
   const [infoItems,    setInfoItems]       = useState([]);
   const [aboutMe,      setAboutMe]         = useState(null);
   const [education,    setEducation]       = useState(null);
@@ -102,7 +108,7 @@ export function DataProvider({ children }) {
           fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/blog`)
         ]);
         if (resGal.ok) { const d = await resGal.json(); if (Array.isArray(d)) setGallery(d); }
-        if (resCert.ok) { const d = await resCert.json(); if (Array.isArray(d)) setCertificates(d); }
+        if (resCert.ok) { const d = await resCert.json(); if (Array.isArray(d)) setCertificates(d.length > 0 ? d : load(LS.certificates, d)); }
         if (resTest.ok) { const d = await resTest.json(); if (Array.isArray(d)) setTestimonials(d); }
         if (resBlog.ok) { const d = await resBlog.json(); if (Array.isArray(d)) setBlogPosts(d); }
       } catch (err) {

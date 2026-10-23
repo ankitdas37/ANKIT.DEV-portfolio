@@ -95,13 +95,16 @@ export default function StartProjectPage() {
   return (
     <main className="min-h-screen bg-[#02050D] relative overflow-hidden pt-20 pb-28 sm:pt-24 sm:pb-20 selection:bg-[#0EA5E9]/30">
       {/* Dynamic Background Elements */}
-      <div className="absolute inset-0 pointer-events-none">
-        <motion.div
-          animate={{ rotate: 360 }} transition={{ duration: 150, repeat: Infinity, ease: "linear" }}
-          className="absolute top-[-20%] left-[-10%] w-[70vw] h-[70vw] rounded-full border border-[rgba(14,165,233,0.05)] border-dashed opacity-50"
+      {/* Background Ambient Accents */}
+      <div className="absolute inset-0 pointer-events-none opacity-40">
+        <div 
+          className="absolute top-1/4 right-0 w-[500px] h-[500px] rounded-full pointer-events-none"
+          style={{ background: "radial-gradient(circle, rgba(14,165,233,0.08) 0%, transparent 70%)" }}
         />
-        <div className="absolute top-1/4 right-0 w-[500px] h-[500px] rounded-full bg-[#0EA5E9] opacity-[0.03] blur-[150px] mix-blend-screen" />
-        <div className="absolute bottom-0 left-1/4 w-[600px] h-[600px] rounded-full bg-[#A855F7] opacity-[0.03] blur-[150px] mix-blend-screen" />
+        <div 
+          className="absolute bottom-0 left-1/4 w-[600px] h-[600px] rounded-full pointer-events-none"
+          style={{ background: "radial-gradient(circle, rgba(168,85,247,0.08) 0%, transparent 70%)" }}
+        />
       </div>
 
       <div className="max-w-4xl mx-auto px-4 relative z-10">

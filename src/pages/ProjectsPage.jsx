@@ -124,8 +124,14 @@ export default function ProjectsPage() {
   return (
     <main className="min-h-screen bg-[#02050D] pt-24 pb-28 sm:pb-32 font-sans overflow-x-hidden relative">
       {/* Background elements */}
-      <div className="absolute top-20 left-10 w-96 h-96 rounded-full bg-[#7C3AED] opacity-[0.03] blur-[100px] pointer-events-none" />
-      <div className="absolute top-40 right-10 w-80 h-80 rounded-full bg-[#2563EB] opacity-[0.04] blur-[100px] pointer-events-none" />
+      <div 
+        className="absolute top-20 left-10 w-96 h-96 rounded-full pointer-events-none opacity-30"
+        style={{ background: "radial-gradient(circle, rgba(124,58,237,0.1) 0%, transparent 70%)" }}
+      />
+      <div 
+        className="absolute top-40 right-10 w-80 h-80 rounded-full pointer-events-none opacity-30"
+        style={{ background: "radial-gradient(circle, rgba(37,99,235,0.12) 0%, transparent 70%)" }}
+      />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
 
@@ -416,7 +422,10 @@ export default function ProjectsPage() {
 
         {/* Bottom Banner */}
         <div className="glass rounded-2xl p-6 sm:p-8 border border-[rgba(255,255,255,0.05)] flex flex-col lg:flex-row items-center gap-8 relative overflow-hidden bg-[rgba(7,17,31,0.6)]">
-          <div className="absolute -left-20 top-1/2 -translate-y-1/2 w-64 h-64 bg-[#7C3AED] rounded-full blur-[100px] opacity-10 pointer-events-none" />
+          <div 
+            className="absolute -left-20 top-1/2 -translate-y-1/2 w-64 h-64 rounded-full pointer-events-none opacity-20"
+            style={{ background: "radial-gradient(circle, rgba(124,58,237,0.3) 0%, transparent 70%)" }}
+          />
 
           <div className="flex items-center gap-4 lg:w-1/3">
             <div className="w-12 h-12 rounded-xl bg-[rgba(124,58,237,0.1)] flex items-center justify-center border border-[rgba(124,58,237,0.2)] shrink-0">

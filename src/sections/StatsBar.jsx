@@ -48,18 +48,12 @@ export default function StatsBar() {
                     : ""
                 }`}
               >
-                <motion.span
-                  className="text-3xl sm:text-2xl mb-1 filter drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]"
-                  animate={{ scale: [1, 1.1, 1] }}
-                  transition={{
-                    duration: 3,
-                    delay: index * 0.5,
-                    repeat: Infinity,
-                  }}
+                <span
+                  className="text-3xl sm:text-2xl mb-1 transition-transform duration-300 hover:scale-110 drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]"
                   aria-hidden="true"
                 >
                   {item.icon}
-                </motion.span>
+                </span>
                 <p className="text-[10px] sm:text-xs font-mono font-bold text-[#00BFFF] uppercase tracking-[0.2em] text-center">
                   {item.title}
                 </p>
